@@ -4,4 +4,5 @@ SRCS := \
 	EtherAddr.cpp \
 	EtherFlow.cpp \
 	Ipv4Flow.cpp \
+	PacketExpectation.cpp \
 	TcpFlow.cpp \
