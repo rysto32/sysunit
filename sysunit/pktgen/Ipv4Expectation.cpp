@@ -55,7 +55,7 @@ namespace PktGen
 
 	size_t Ipv4Expectation::GetHeaderLen(mbuf *) const
 	{
-		return header_len;
+		return header_len * sizeof(uint32_t);
 	}
 
 	#define	CheckField(field, expect) \
