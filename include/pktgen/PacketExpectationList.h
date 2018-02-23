@@ -57,6 +57,13 @@ namespace PktGen
 		{
 		}
 
+		PacketExpectationList(std::vector<PacketExpectation*> && list)
+		{
+			for (auto * expect : list) {
+				expectList.emplace_back(expect);
+			}
+		}
+
 		void operator()(mbuf * m) const
 		{
 			for (auto & expect : expectList) {
