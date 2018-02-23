@@ -33,6 +33,7 @@ panic(const char *fmt, ...)
 void
 vpanic(const char *fmt, va_list ap)
 {
+	fprintf(stderr, "panic: ");
 	vfprintf(stderr, fmt, ap);
 	abort();
 }
