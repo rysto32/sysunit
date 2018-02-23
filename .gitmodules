@@ -1,0 +1,3 @@
+[submodule "freebsd"]
+	path = freebsd
+	url = rstone-server:/repos/git-daemon/freebsd.git
