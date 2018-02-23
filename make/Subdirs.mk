@@ -4,7 +4,7 @@ define include_template
  DIRSTACK_$$(STACK) := $$(CURDIR)
  CURDIR := $$(CURDIR)/$(1)
 
- OBJS:=
+ SRCS:=
  LIB:=
  LOCAL_INCLUDE:=
 
