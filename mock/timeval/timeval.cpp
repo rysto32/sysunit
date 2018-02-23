@@ -1,7 +1,7 @@
 
 
 extern "C" {
-#define _KERNEL 1
+#define _KERNEL_UT 1
 #include <kern_include/sys/time.h>
 }
 
