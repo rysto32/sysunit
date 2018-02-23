@@ -3,6 +3,7 @@ SUBDIRS=\
 	fakes \
 	mock \
 	netinet \
+	sysunit \
 
 .DEFAULT_GOAL:=all
 

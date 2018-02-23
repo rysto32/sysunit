@@ -1,0 +1,3 @@
+
+SUBDIRS := \
+	sysunit_init \
