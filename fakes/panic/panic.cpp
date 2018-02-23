@@ -1,9 +1,9 @@
 
-#define _KERNEL 1
-#define UT_FRIENDLY 1
+#define _KERNEL_UT 1
+#define _KERNEL_UT_NO_USERLAND_CONFLICTS 1
 
 extern "C" {
-#include <sys/types.h>
+#include <kern_include/sys/types.h>
 #include <kern_include/sys/systm.h>
 #include <kern_include/sys/libkern.h>
 }

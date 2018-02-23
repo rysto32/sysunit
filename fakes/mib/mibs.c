@@ -1,8 +1,7 @@
 
 
 
-#define _KERNEL 1
-#define UT_FRIENDLY 1
+#define _KERNEL_UT 1
 
 #include <sys/types.h>
 #include <sys/param.h>
