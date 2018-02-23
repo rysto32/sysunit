@@ -26,57 +26,16 @@
  * SUCH DAMAGE.
  */
 
-#define _KERNEL_UT 1
+#ifndef MBUF_INIT_H
+#define MBUF_INIT_H
 
-#include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/lock.h>
-#include <kern_include/sys/mbuf.h>
-#include <kern_include/vm/uma.h>
+#include "sysunit/Initializer.h"
 
-#include <fake/mbuf.h>
-
-uma_zone_t zone_mbuf;
-uma_zone_t zone_pack;
-
-struct mbuf *
-m_getm2(struct mbuf *m, int len, int how, short type, int flags)
+class MbufInit : public SysUnit::Initializer
 {
-	MPASS (false);
-	return NULL;
-}
+public:
+	void SetUp() override;
+	void TearDown() override;
+};
 
-int
-m_tag_copy_chain(struct mbuf *to, const struct mbuf *from, int how)
-{
-	MPASS (SLIST_EMPTY(&from->m_pkthdr.tags));
-	return (0);
-}
-
-void
-m_tag_delete_chain(struct mbuf *m, struct m_tag *t)
-{
-	MPASS (t == NULL);
-	MPASS (SLIST_EMPTY(&m->m_pkthdr.tags));
-}
-
-void
-m_freem(struct mbuf *m)
-{
-	while (m != NULL)
-		m = m_free(m);
-}
-
-void
-mb_free_ext(struct mbuf *m)
-{
-	MPASS(false);
-}
-
-struct mbuf *
-alloc_mbuf(size_t len)
-{
-	MPASS (len < MHLEN);
-
-	return m_gethdr(M_WAITOK, MT_DATA);
-}
+#endif

@@ -26,57 +26,25 @@
  * SUCH DAMAGE.
  */
 
+#ifndef FAKE_MBUF_H
+#define FAKE_MBUF_H
+
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
+
 #define _KERNEL_UT 1
-
-#include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/lock.h>
+#include <kern_include/sys/types.h>
+#include <kern_include/sys/systm.h>
+#include <kern_include/sys/param.h>
+#include <kern_include/sys/lock.h>
+#include <kern_include/sys/queue.h>
+#include <kern_include/sys/sdt.h>
 #include <kern_include/sys/mbuf.h>
-#include <kern_include/vm/uma.h>
 
-#include <fake/mbuf.h>
+struct mbuf * alloc_mbuf(size_t size);
+void m_freem(struct mbuf *);
 
-uma_zone_t zone_mbuf;
-uma_zone_t zone_pack;
+__END_DECLS
 
-struct mbuf *
-m_getm2(struct mbuf *m, int len, int how, short type, int flags)
-{
-	MPASS (false);
-	return NULL;
-}
-
-int
-m_tag_copy_chain(struct mbuf *to, const struct mbuf *from, int how)
-{
-	MPASS (SLIST_EMPTY(&from->m_pkthdr.tags));
-	return (0);
-}
-
-void
-m_tag_delete_chain(struct mbuf *m, struct m_tag *t)
-{
-	MPASS (t == NULL);
-	MPASS (SLIST_EMPTY(&m->m_pkthdr.tags));
-}
-
-void
-m_freem(struct mbuf *m)
-{
-	while (m != NULL)
-		m = m_free(m);
-}
-
-void
-mb_free_ext(struct mbuf *m)
-{
-	MPASS(false);
-}
-
-struct mbuf *
-alloc_mbuf(size_t len)
-{
-	MPASS (len < MHLEN);
-
-	return m_gethdr(M_WAITOK, MT_DATA);
-}
+#endif
