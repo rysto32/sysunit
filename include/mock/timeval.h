@@ -13,7 +13,7 @@ public:
 class GlobalMockTimeval : public GlobalMock<MockTimeval>
 {
 public:
-	void ExpectGetMicrotime(struct timeval &tv)
+	void ExpectGetMicrotime(const struct timeval &tv)
 	{
 		EXPECT_CALL(**this, getmicrotime(testing::_))
 		  .Times(1)
