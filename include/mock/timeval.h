@@ -10,7 +10,7 @@ public:
 	MOCK_METHOD1(getmicrotime, void(struct timeval *));
 };
 
-class GlobalMockTimeval : private GlobalMock<MockTimeval>
+class GlobalMockTimeval : public GlobalMock<MockTimeval>
 {
 public:
 	void ExpectGetMicrotime(struct timeval &tv)
