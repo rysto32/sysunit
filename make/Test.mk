@@ -55,7 +55,7 @@ TEST_$$(TEST)_LIBARGS := $$(addprefix $$(LIBDIR)/lib,  $$(addsuffix .a, $$(TEST_
 
 TEST_$$(TEST)_STDLIBARGS:= \
 	$$(addprefix -l,$$(TEST_$$(TEST)_STDLIBS)) \
-	-lgtest -lgtest_main -lpthread
+	    -lgtest -lgtest_main -lpthread
 
 TEST_$$(TEST)_OUTDIR := $$(TESTDIR)/$$(CURDIR)
 TEST_$$(TEST)_PROG := $$(TEST_$$(TEST)_OUTDIR)/$1.testprog
