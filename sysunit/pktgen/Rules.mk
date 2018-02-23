@@ -7,4 +7,5 @@ SRCS := \
 	Ipv4Expectation.cpp \
 	Ipv4Flow.cpp \
 	PacketExpectation.cpp \
+	TcpExpectation.cpp \
 	TcpFlow.cpp \
