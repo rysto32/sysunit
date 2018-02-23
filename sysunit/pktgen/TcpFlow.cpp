@@ -57,7 +57,8 @@ namespace PktGen
 		tcp->th_sport = htons(sport);
 		tcp->th_dport = htons(dport);
 
-		tcp->th_seq = htonl(seqno + seqOff);
+		lastSeq = seqno + seqOff;
+		tcp->th_seq = htonl(lastSeq);
 		tcp->th_ack = htonl(ackno);
 
 		if (seqOff == 0)
@@ -67,7 +68,7 @@ namespace PktGen
 		tcp->th_off = hdrlen / sizeof(uint32_t);
 		tcp->th_flags = flags;
 
-		tcp->th_win = window;
+		tcp->th_win = ntohs(window);
 		tcp->th_sum = 0;
 		tcp->th_urp = 0;
 

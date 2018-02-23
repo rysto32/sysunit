@@ -48,6 +48,7 @@ namespace PktGen
 
 		uint16_t window;
 
+		uint32_t lastSeq;
 		uint32_t seqno;
 		uint32_t ackno;
 
@@ -65,8 +66,10 @@ namespace PktGen
 			return IPPROTO_TCP;
 		}
 
+		static const int DEFAULT_FLAGS = TH_ACK;
+
 		Packet GetNextPacket(uint32_t seqOff, uint32_t len,
-		    const char * fill = NULL, uint8_t flags = TH_ACK);
+		    const char * fill = NULL, uint8_t flags = DEFAULT_FLAGS);
 
 		void AdvanceAck(uint32_t ackOff)
 		{
@@ -76,6 +79,36 @@ namespace PktGen
 		void SetWindow(uint16_t w)
 		{
 			window = w;
+		}
+
+		uint16_t GetSrcPort() const
+		{
+			return sport;
+		}
+
+		uint16_t GetDstPort() const
+		{
+			return dport;
+		}
+
+		uint32_t GetLastSeq() const
+		{
+			return lastSeq;
+		}
+
+		uint32_t GetLastAck() const
+		{
+			return ackno;
+		}
+
+		uint8_t GetDefaultFlags() const
+		{
+			return DEFAULT_FLAGS;
+		}
+
+		uint16_t GetWindow() const
+		{
+			return window;
 		}
 	};
 }
