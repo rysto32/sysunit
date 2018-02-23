@@ -1,1 +1,1 @@
-/home/rstone/git/ut-test/src/sys/netinet/tcp_lro.h
+../freebsd/sys/netinet/tcp_lro.h
