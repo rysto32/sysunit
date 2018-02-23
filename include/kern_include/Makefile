@@ -1,1 +1,1 @@
-/home/rstone/git/freebsd/sys/Makefile
+../../freebsd/sys/Makefile
