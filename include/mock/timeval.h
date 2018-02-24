@@ -17,7 +17,8 @@ public:
 	{
 		EXPECT_CALL(**this, getmicrotime(testing::_))
 		  .Times(1)
-		  .WillOnce(testing::SetArgPointee<0>(tv));
+		  .WillOnce(testing::SetArgPointee<0>(tv))
+		  .RetiresOnSaturation();
 	}
 };
 
