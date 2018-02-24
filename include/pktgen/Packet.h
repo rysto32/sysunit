@@ -31,6 +31,9 @@
 
 #include "fake/mbuf.h"
 
+#include <kern_include/sys/types.h>
+#include <kern_include/netinet/in.h>
+
 #include <algorithm>
 #include <memory>
 #include <stdio.h>
@@ -181,6 +184,27 @@ namespace PktGen
 			return m.get();
 		}
 	};
+
+	template <typename T>
+	inline T * GetMbufHeader(mbuf * m, size_t offset)
+	{
+		return reinterpret_cast<T*>(m->m_data + offset);
+	}
+
+	inline uint8_t ntoh(uint8_t x)
+	{
+		return x;
+	}
+
+	inline uint16_t ntoh(uint16_t x)
+	{
+		return ntohs(x);
+	}
+
+	inline uint32_t ntoh(uint32_t x)
+	{
+		return ntohl(x);
+	}
 }
 
 #endif
