@@ -147,6 +147,11 @@ namespace PktGen
 			}
 		}
 
+		mbuf * release()
+		{
+			return m.release();
+		}
+
 		mbuf * get()
 		{
 			return m.get();
