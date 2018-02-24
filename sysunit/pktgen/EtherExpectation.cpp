@@ -46,9 +46,9 @@ namespace PktGen
 	void EtherExpectation::TestExpectations(mbuf *m) const
 	{
 		auto * eh = mtod(m, struct ether_header*);
-		EXPECT_EQ(dst, EtherAddr(eh->ether_dhost));
-		EXPECT_EQ(src, EtherAddr(eh->ether_shost));
-		EXPECT_EQ(ethertype, ntohs(eh->ether_type));
+		ASSERT_EQ(dst, EtherAddr(eh->ether_dhost));
+		ASSERT_EQ(src, EtherAddr(eh->ether_shost));
+		ASSERT_EQ(ethertype, ntohs(eh->ether_type));
 	}
 
 	size_t EtherExpectation::GetHeaderLen(mbuf *m) const

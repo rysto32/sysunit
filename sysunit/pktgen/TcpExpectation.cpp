@@ -54,7 +54,7 @@ namespace PktGen
 	}
 
 	#define	CheckField(th, field) \
-		EXPECT_EQ(ntoh((th)->field), field)
+		ASSERT_EQ(ntoh((th)->field), field)
 
 	void TcpExpectation::TestExpectations(mbuf *m) const
 	{

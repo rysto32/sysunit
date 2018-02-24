@@ -59,7 +59,7 @@ namespace PktGen
 	}
 
 	#define	CheckField(field, expect) \
-		EXPECT_EQ(ntoh(field), expect)
+		ASSERT_EQ(ntoh(field), expect)
 
 	void Ipv4Expectation::TestExpectations(mbuf* m) const
 	{
@@ -77,7 +77,7 @@ namespace PktGen
 
 		// The IPs are stored in network byte order so
 		// there is no need to byte-swap them before comparing
-		EXPECT_EQ(ip->ip_src, src);
-		EXPECT_EQ(ip->ip_dst, dst);
+		ASSERT_EQ(ip->ip_src, src);
+		ASSERT_EQ(ip->ip_dst, dst);
 	}
 }
