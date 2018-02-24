@@ -26,30 +26,44 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_PACKET_EXPECTATION_H
-#define PKTGEN_PACKET_EXPECTATION_H
+#ifndef PKTGEN_TCP_EXPECTATION_H
+#define PKTGEN_TCP_EXPECTATION_H
 
 #include "fake/mbuf.h"
-
-#include <gtest/gtest.h>
+#include <gmock/gmock-matchers.h>
 
 namespace PktGen
 {
-	class PacketExpectation
+	class TcpFlow;
+
+	class TcpMatcher : public testing::MatcherInterface<mbuf*>
 	{
-	protected:
-		static uint8_t ntoh(uint8_t);
-		static uint16_t ntoh(uint16_t);
-		static uint32_t ntoh(uint32_t);
+	private:
+		size_t headerOffset;
+		uint16_t th_sport;
+		uint16_t th_dport;
+		uint32_t th_seq;
+		uint32_t th_ack;
+		uint8_t th_off;
+		uint8_t th_x2;
+		uint8_t th_flags;
+		uint16_t th_win;
+		uint16_t th_sum;
+		uint16_t th_urp;
 
 	public:
-		virtual ~PacketExpectation() = default;
+		TcpMatcher(const TcpFlow &, size_t offset);
 
-		void operator()(mbuf * m) const;
+		virtual bool MatchAndExplain(mbuf*,
+                    testing::MatchResultListener* listener) const override;
 
-		virtual void TestExpectations(mbuf *m) const = 0;
-		virtual size_t GetHeaderLen(mbuf *m) const = 0;
+		virtual void DescribeTo(::std::ostream* os) const override;
 	};
+
+	inline testing::Matcher<mbuf*> TcpHeader(const TcpFlow &flow, size_t offset)
+	{
+		return testing::MakeMatcher(new TcpMatcher(flow, offset));
+	}
 }
 
 #endif

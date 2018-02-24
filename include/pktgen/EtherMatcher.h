@@ -26,36 +26,39 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/PacketExpectation.h"
+#ifndef PKTGEN_ETHER_MATCHER_H
+#define PKTGEN_ETHER_MATCHER_H
 
-#include <kern_include/sys/types.h>
-#include <kern_include/netinet/in.h>
+#include "fake/mbuf.h"
+
+#include "pktgen/EtherAddr.h"
+#include <gmock/gmock-matchers.h>
 
 namespace PktGen
 {
-	void PacketExpectation::operator()(mbuf * m) const
+	class EtherFlow;
+
+	class EtherMatcher : public testing::MatcherInterface<mbuf*>
 	{
-		TestExpectations(m);
-		ASSERT_TRUE(m->m_flags & M_PKTHDR);
+	private:
+		EtherAddr dst;
+		EtherAddr src;
+		uint16_t ethertype;
+		size_t headerOffset;
 
-		auto hdrlen = GetHeaderLen(m);
+	public:
+		EtherMatcher(const EtherFlow & flow, uint16_t etype, size_t offset);
 
-		ASSERT_GE(m->m_pkthdr.len, hdrlen);
-		m_adj(m, hdrlen);
-	}
+		virtual bool MatchAndExplain(mbuf*,
+                    testing::MatchResultListener* listener) const override;
 
-	uint8_t PacketExpectation::ntoh(uint8_t x)
+		virtual void DescribeTo(::std::ostream* os) const override;
+	};
+
+	inline testing::Matcher<mbuf*> EtherHeader(const EtherFlow & flow, uint16_t etype, size_t offset)
 	{
-		return x;
-	}
-
-	uint16_t PacketExpectation::ntoh(uint16_t x)
-	{
-		return ntohs(x);
-	}
-
-	uint32_t PacketExpectation::ntoh(uint32_t x)
-	{
-		return ntohl(x);
+		return testing::MakeMatcher(new EtherMatcher(flow, etype, offset));
 	}
 }
+
+#endif

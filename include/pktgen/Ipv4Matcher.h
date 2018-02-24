@@ -26,40 +26,49 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_TCP_EXPECTATION_H
-#define PKTGEN_TCP_EXPECTATION_H
+#ifndef PKTGEN_IPV4_EXPECTATION_H
+#define PKTGEN_IPV4_EXPECTATION_H
 
-#include "pktgen/PacketExpectation.h"
+#include "fake/mbuf.h"
+
+#include <kern_include/sys/types.h>
+#include <kern_include/netinet/in.h>
+#include <kern_include/netinet/ip.h>
+
+#include <gmock/gmock-matchers.h>
 
 namespace PktGen
 {
-	class TcpFlow;
+	class Ipv4Flow;
 
-	class TcpExpectation : public PacketExpectation
+	class Ipv4Matcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		uint16_t th_sport;
-		uint16_t th_dport;
-		uint32_t th_seq;
-		uint32_t th_ack;
-		uint8_t th_off;
-		uint8_t th_x2;
-		uint8_t th_flags;
-		uint16_t th_win;
-		uint16_t th_sum;
-		uint16_t th_urp;
+		size_t headerOffset;
+		uint8_t header_len;
+		uint8_t tos;
+		uint16_t len;
+		uint16_t id;
+		uint16_t off;
+		uint8_t ttl;
+		uint8_t proto;
+		uint16_t sum;
+		struct in_addr src;
+		struct in_addr dst;
 
 	public:
-		TcpExpectation(const TcpFlow &);
+		Ipv4Matcher(const Ipv4Flow & flow, uint8_t proto, uint16_t ip_len, size_t offset);
 
-		void flags(uint8_t flags)
-		{
-			th_flags = flags;
-		}
+		virtual bool MatchAndExplain(mbuf*,
+                    testing::MatchResultListener* listener) const override;
 
-		virtual void TestExpectations(mbuf *m) const override;
-		virtual size_t GetHeaderLen(mbuf *m) const override;
+		virtual void DescribeTo(::std::ostream* os) const override;
 	};
+
+	inline testing::Matcher<mbuf*> Ipv4Header(const Ipv4Flow & flow, uint8_t proto, uint16_t ip_len, size_t offset)
+	{
+		return testing::MakeMatcher(new Ipv4Matcher(flow, proto, ip_len, offset));
+	}
 }
 
 #endif

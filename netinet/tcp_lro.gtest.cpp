@@ -32,11 +32,10 @@
 #include "pktgen/Ipv4Flow.h"
 #include "pktgen/TcpFlow.h"
 
-#include "pktgen/EtherExpectation.h"
-#include "pktgen/Ipv4Expectation.h"
-#include "pktgen/PacketExpectationList.h"
-#include "pktgen/PayloadExpectation.h"
-#include "pktgen/TcpExpectation.h"
+#include "pktgen/EtherMatcher.h"
+#include "pktgen/Ipv4Matcher.h"
+#include "pktgen/PayloadMatcher.h"
+#include "pktgen/TcpMatcher.h"
 
 extern "C" {
 #include <kern_include/net/if.h>
@@ -76,20 +75,18 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 
 	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
 
-	EtherFlow ether("02:01:02:03:04:05", "02:05:04:03:02:01");
+	EtherFlow ether("02:f0:e0:d0:c0:b0", "02:05:04:0c:02:01");
 	Ipv4Flow ip(ether, "192.168.1.1", "192.168.1.10");
 	TcpFlow tcp(ip, 11965, 54321, 0, 0);
 
-	Packet m = tcp.GetNextPacket(0, 5, "12345");
+	Packet m = tcp.GetNextPacket(0, 5);
 
-	EXPECT_CALL(mockIfp, if_input(_))
-	  .Times(1)
-	  .WillOnce(Invoke(PacketExpectationList({
-	    new EtherExpectation(ether, ip.GetEtherType()),
-	    new Ipv4Expectation(ip, tcp.GetIpProto(), m.GetL3Len()),
-	    new TcpExpectation(tcp),
-	    new PayloadExpectation("12345", 5)
-	})));
+	EXPECT_CALL(mockIfp, if_input(AllOf(
+	    EtherHeader(ether, ip.GetEtherType(), m.GetHeaderOffset(Packet::Layer::L2)),
+	    Ipv4Header(ip, tcp.GetIpProto(), m.GetL3Len(), m.GetHeaderOffset(Packet::Layer::L3)),
+	    TcpHeader(tcp, m.GetHeaderOffset(Packet::Layer::L4)),
+	    Payload(5, m.GetHeaderOffset(Packet::Layer::PAYLOAD))
+	))).Times(1);
 
 	m->m_pkthdr.csum_flags |= CSUM_IP_CHECKED | CSUM_IP_VALID | CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 
@@ -117,21 +114,20 @@ TEST_F(TcpLroTestSuite, TestMergeTcp4)
 
 	const auto csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID | CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
 
-	const auto first_payload_len = 2*5;
+	const auto first_payload_len = 5;
 
 	Packet m = tcp.GetNextPacket(0, first_payload_len, "12345");
 	m->m_pkthdr.csum_flags |= csum_flags;
 
-	const auto second_payload_len = 2*4;
+	const auto second_payload_len = 4;
+	const auto iplen = m.GetL3Len() + second_payload_len;
 
-	EXPECT_CALL(mockIfp, if_input(_))
-	  .Times(1)
-	  .WillOnce(Invoke(PacketExpectationList({
-	    new EtherExpectation(ether, ip.GetEtherType()),
-	    new Ipv4Expectation(ip, tcp.GetIpProto(), m.GetL3Len() + second_payload_len),
-	    new TcpExpectation(tcp),
-	    new PayloadExpectation("123451234567896789", first_payload_len + second_payload_len)
-	})));
+	EXPECT_CALL(mockIfp, if_input(AllOf(
+	    EtherHeader(ether, ip.GetEtherType(), m.GetHeaderOffset(Packet::Layer::L2)),
+	    Ipv4Header(ip, tcp.GetIpProto(), iplen, m.GetHeaderOffset(Packet::Layer::L3)),
+	    TcpHeader(tcp, m.GetHeaderOffset(Packet::Layer::L4)),
+	    Payload("123456789", first_payload_len + second_payload_len, m.GetHeaderOffset(Packet::Layer::PAYLOAD))
+	))).Times(1);
 
 	Packet m2 = tcp.GetNextPacket(0, second_payload_len, "6789");
 	m2->m_pkthdr.csum_flags |= csum_flags;

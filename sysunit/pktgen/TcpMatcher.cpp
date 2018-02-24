@@ -26,59 +26,66 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/Ipv4Expectation.h"
+#define _KERNEL_UT 1
 
-#include "pktgen/Ipv4Flow.h"
+#include "pktgen/TcpMatcher.h"
 
-bool operator==(in_addr a, in_addr b)
-{
-	return a.s_addr == b.s_addr;
-}
+#include "pktgen/TcpFlow.h"
+
+#include <gtest/gtest.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 
 namespace PktGen
 {
-	Ipv4Expectation::Ipv4Expectation(const Ipv4Flow & flow, uint8_t proto, uint16_t ip_len)
-	  : header_len(flow.GetHeaderSize() / sizeof(uint32_t)),
-	    tos(flow.GetTos()),
-	    len(ip_len),
-	    id(flow.GetLastId()),
-	    off(0),
-	    ttl(flow.GetTtl()),
-	    proto(proto),
-	    sum(0),
-	    src(flow.GetSrc()),
-	    dst(flow.GetDst())
+	TcpMatcher::TcpMatcher(const TcpFlow &flow, size_t offset)
+	  : headerOffset(offset),
+	    th_sport(flow.GetSrcPort()),
+	    th_dport(flow.GetDstPort()),
+	    th_seq(flow.GetLastSeq()),
+	    th_ack(flow.GetLastAck()),
+	    th_off(flow.GetHeaderLen() / sizeof(uint32_t)),
+	    th_x2(0),
+	    th_flags(flow.GetDefaultFlags()),
+	    th_win(flow.GetWindow()),
+	    th_sum(0),
+	    th_urp(0)
 	{
 	}
 
-	size_t Ipv4Expectation::GetHeaderLen(mbuf *) const
+	#define	CheckField(th, field) do { \
+		if (ntoh((th)->field) != (field)) { \
+			*listener << #field << " field is " << ntoh((th)->field) \
+			    << " (expected " << (field) << ")"; \
+			return false; \
+		} \
+	} while (0)
+
+	bool TcpMatcher::MatchAndExplain(mbuf* m,
+                    testing::MatchResultListener* listener) const
 	{
-		return header_len * sizeof(uint32_t);
-	}
+		auto * tcp = GetMbufHeader<tcphdr>(m, headerOffset);
 
-	#define	CheckField(field, expect) \
-		ASSERT_EQ(ntoh(field), expect)
-
-	void Ipv4Expectation::TestExpectations(mbuf* m) const
-	{
-		auto * ip = mtod(m, struct ip*);
-
-		CheckField(ip->ip_hl, header_len);
-		CheckField(ip->ip_v, static_cast<uint8_t>(4));
-		CheckField(ip->ip_tos, tos);
-		CheckField(ip->ip_len, len);
-		CheckField(ip->ip_id, id);
-		CheckField(ip->ip_off, off);
-		CheckField(ip->ip_ttl, ttl);
-		CheckField(ip->ip_p, proto);
+		CheckField(tcp, th_sport);
+		CheckField(tcp, th_dport);
+		CheckField(tcp, th_seq);
+		CheckField(tcp, th_ack);
+		CheckField(tcp, th_off);
+		CheckField(tcp, th_x2);
+		CheckField(tcp, th_flags);
+		CheckField(tcp, th_win);
 
 		// XXX tcp_lro always updates this...
 		if (0)
-			CheckField(ip->ip_sum, sum);
+			CheckField(tcp, th_sum);
 
-		// The IPs are stored in network byte order so
-		// there is no need to byte-swap them before comparing
-		ASSERT_EQ(ip->ip_src, src);
-		ASSERT_EQ(ip->ip_dst, dst);
+		CheckField(tcp, th_urp);
+
+		return true;
+	}
+
+	void TcpMatcher::DescribeTo(::std::ostream* os) const
+	{
+		*os << "TCP header";
 	}
 }

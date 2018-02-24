@@ -2,11 +2,10 @@
 LIB :=	pktgen
 SRCS := \
 	EtherAddr.cpp \
-	EtherExpectation.cpp \
 	EtherFlow.cpp \
-	Ipv4Expectation.cpp \
+	EtherMatcher.cpp \
 	Ipv4Flow.cpp \
-	PacketExpectation.cpp \
-	PayloadExpectation.cpp \
-	TcpExpectation.cpp \
+	Ipv4Matcher.cpp \
+	PayloadMatcher.cpp \
 	TcpFlow.cpp \
+	TcpMatcher.cpp \

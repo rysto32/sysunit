@@ -26,29 +26,42 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_ETHER_EXPECTATION_H
-#define PKTGEN_ETHER_EXPECTATION_H
+#ifndef PKTGEN_PAYLOAD_EXPECTATION_H
+#define PKTGEN_PAYLOAD_EXPECTATION_H
 
-#include "pktgen/PacketExpectation.h"
-#include "pktgen/EtherAddr.h"
+#include "fake/mbuf.h"
+#include <gmock/gmock-matchers.h>
 
 namespace PktGen
 {
-	class EtherFlow;
-
-	class EtherExpectation : public PacketExpectation
+	class PayloadMatcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		EtherAddr dst;
-		EtherAddr src;
-		uint16_t ethertype;
+		const char *pattern;
+		size_t len;
+		size_t headerOffset;
+
+		bool TestNullPattern(mbuf *m, size_t off, size_t mbufIndex, size_t payloadIndex,
+		    size_t & remaining, testing::MatchResultListener *) const;
+
+		bool TestPattern(mbuf *m, size_t hdroff, size_t mbufIndex, size_t payloadIndex,
+		    size_t & patOff, size_t & remaining, testing::MatchResultListener *) const;
 
 	public:
-		EtherExpectation(const EtherFlow & flow, uint16_t etype);
+		PayloadMatcher(const char * pattern, size_t len, size_t offset);
+		PayloadMatcher(size_t len, size_t offset);
 
-		virtual void TestExpectations(mbuf *m) const override;
-		virtual size_t GetHeaderLen(mbuf *m) const override;
+		virtual bool MatchAndExplain(mbuf*,
+                    testing::MatchResultListener* listener) const override;
+
+		virtual void DescribeTo(::std::ostream* os) const override;
 	};
+
+	template <typename... Args>
+	inline testing::Matcher<mbuf*> Payload(Args... args)
+	{
+		return testing::MakeMatcher(new PayloadMatcher(args...));
+	}
 }
 
 #endif

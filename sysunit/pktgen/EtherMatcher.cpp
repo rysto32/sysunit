@@ -26,30 +26,53 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_PAYLOAD_EXPECTATION_H
-#define PKTGEN_PAYLOAD_EXPECTATION_H
+#include "pktgen/EtherMatcher.h"
 
-#include "pktgen/PacketExpectation.h"
+#include "pktgen/EtherFlow.h"
+
+#include <netinet/in.h>
+
+using testing::MatchResultListener;
 
 namespace PktGen
 {
-	class PayloadExpectation : public PacketExpectation
+	EtherMatcher::EtherMatcher(const EtherFlow& flow, uint16_t etype,
+	    size_t offset)
+	  : dst(flow.GetDst()),
+	    src(flow.GetSrc()),
+	    ethertype(etype),
+	    headerOffset(offset)
 	{
-	private:
-		const char *pattern;
-		size_t len;
+	}
 
-		void TestNullPattern(mbuf *m, size_t & remaining) const;
+	bool EtherMatcher::MatchAndExplain(mbuf* m,
+	    MatchResultListener* listener) const
+	{
+		auto * eh = GetMbufHeader<ether_header>(m, headerOffset);
 
-		void TestPattern(mbuf *m, size_t & offset, size_t & remaining) const;
+		EtherAddr pktDst(eh->ether_dhost);
+		if (dst != pktDst) {
+			*listener << "dst mac is " << pktDst << " (expected " << dst << ")";
+			return false;
+		}
 
-	public:
-		PayloadExpectation(const char * pattern, size_t len);
-		PayloadExpectation(size_t len);
+		EtherAddr pktSrc(eh->ether_shost);
+		if (src != pktSrc) {
+			*listener << "src mac is " << pktSrc << " (expected " << src << ")";
+			return false;
+		}
 
-		void TestExpectations(mbuf *m) const override;
-		size_t GetHeaderLen(mbuf *m) const override;
-	};
+		if (ethertype != ntohs(eh->ether_type)) {
+			*listener << "ethertype is " << ntohs(eh->ether_type)
+			    << " (expected " << ethertype << ")";
+			return false;
+		}
+
+		return true;
+	}
+
+	void EtherMatcher::DescribeTo(::std::ostream* os) const
+	{
+		*os << "Ethernet header";
+	}
 }
-
-#endif
