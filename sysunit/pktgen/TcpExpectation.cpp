@@ -68,7 +68,11 @@ namespace PktGen
 		CheckField(tcp, th_x2);
 		CheckField(tcp, th_flags);
 		CheckField(tcp, th_win);
-		CheckField(tcp, th_sum);
+
+		// XXX tcp_lro always updates this...
+		if (0)
+			CheckField(tcp, th_sum);
+
 		CheckField(tcp, th_urp);
 	}
 
