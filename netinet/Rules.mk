@@ -17,7 +17,10 @@ TEST_TCP_LRO_LIBS := \
 	fake_panic \
 	fake_uma \
 	fake_phash \
+	mock_ifnet \
 	mock_time \
+	pktgen \
+	sysunit_init \
 
 TEST_TCP_LRO_STDLIBS := \
 	gmock \
