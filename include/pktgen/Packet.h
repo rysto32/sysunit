@@ -46,6 +46,7 @@ namespace PktGen
 			L2 = 0,
 			L3,
 			L4,
+			PAYLOAD,
 			MAX_LAYERS
 		};
 
@@ -92,7 +93,7 @@ namespace PktGen
 		Header *
 		AddHeader(Layer layer)
 		{
-			if (layer > Layer::L4)
+			if (layer >= Layer::MAX_LAYERS)
 				throw std::runtime_error("Invalid layer");
 
 			AddHeader(sizeof(Header));
@@ -111,9 +112,26 @@ namespace PktGen
 			return l3Payload;
 		}
 
+		size_t GetHeaderOffset(Layer layer)
+		{
+			if (layer >= Layer::MAX_LAYERS)
+				throw std::runtime_error("Invalid layer");
+
+			int start = static_cast<int>(Layer::L2);
+			int end = static_cast<int>(layer);
+			size_t offset = 0;
+
+			while (start < end) {
+				offset += headerLen[start];
+				++start;
+			}
+
+			return offset;
+		}
+
 		size_t GetHeaderLen(Layer layer)
 		{
-			if (layer > Layer::L4)
+			if (layer >= Layer::MAX_LAYERS)
 				throw std::runtime_error("Invalid layer");
 
 			return headerLen[int(layer)];
@@ -129,6 +147,7 @@ namespace PktGen
 		{
 			MPASS(M_TRAILINGSPACE(m.get()) > len);
 
+			headerLen[static_cast<int>(Layer::PAYLOAD)] = len;
 			m->m_len = len;
 			m->m_pkthdr.len = len;
 
