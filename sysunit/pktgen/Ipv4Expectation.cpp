@@ -26,8 +26,6 @@
  * SUCH DAMAGE.
  */
 
-#define _KERNEL_UT_NO_USERLAND_CONFLICTS 1
-
 #include "pktgen/Ipv4Expectation.h"
 
 #include "pktgen/Ipv4Flow.h"

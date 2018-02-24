@@ -8,6 +8,8 @@ extern "C" {
 #include <kern_include/sys/malloc.h>
 }
 
+#include <string.h>
+
 void
 malloc_init(void *data)
 {

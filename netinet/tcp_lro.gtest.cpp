@@ -26,9 +26,7 @@
  * SUCH DAMAGE.
  */
 
-#define GTEST_HAS_EXCEPTIONS 1
 #define _KERNEL_UT 1
-#define _KERNEL_UT_NO_USERLAND_CONFLICTS 1
 
 #include "pktgen/EtherFlow.h"
 #include "pktgen/Ipv4Flow.h"

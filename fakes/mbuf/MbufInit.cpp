@@ -28,7 +28,7 @@
 
 extern "C" {
 #define _KERNEL_UT 1
-#define _KERNEL_UT_NO_USERLAND_CONFLICTS 1
+
 #include <kern_include/vm/uma.h>
 #include <kern_include/sys/param.h>
 #include <kern_include/sys/lock.h>

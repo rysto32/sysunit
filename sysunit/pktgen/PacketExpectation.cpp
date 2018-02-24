@@ -26,8 +26,6 @@
  * SUCH DAMAGE.
  */
 
-#define _KERNEL_UT_NO_USERLAND_CONFLICTS 1
-
 #include "pktgen/PacketExpectation.h"
 
 #include <kern_include/sys/types.h>
