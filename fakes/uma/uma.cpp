@@ -67,6 +67,7 @@ uma_zalloc_arg(uma_zone_t zone, void * arg, int flags)
 void
 uma_zfree_arg(uma_zone_t zone, void *mem, void *arg)
 {
+	assert (zone->alloced > 0);
 	zone->alloced--;
 
 	if (zone->dtor != NULL)
