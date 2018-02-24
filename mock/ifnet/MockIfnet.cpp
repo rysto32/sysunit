@@ -26,7 +26,11 @@
  * SUCH DAMAGE.
  */
 
+#define _KERNEL_UT 1
+#define _KERNEL_UT_NO_USERLAND_CONFLICTS 1
+
 #include "mock/ifnet.h"
+#include "fake/mbuf.h"
 
 MockIfnet::MockIfnet(const char * driver, int unit)
 {
@@ -46,4 +50,5 @@ MockIfnet::IfInput(struct ifnet * ifp, struct mbuf *m)
 	auto * mock = static_cast<MockIfnet*>(ifp->if_llsoftc);
 
 	mock->if_input(m);
+	m_freem(m);
 }
