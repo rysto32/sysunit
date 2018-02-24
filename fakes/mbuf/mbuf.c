@@ -28,9 +28,9 @@
 
 #define _KERNEL_UT 1
 
-#include <sys/types.h>
-#include <sys/systm.h>
-#include <sys/lock.h>
+#include <kern_include/sys/types.h>
+#include <kern_include/sys/systm.h>
+#include <kern_include/sys/lock.h>
 #include <kern_include/sys/mbuf.h>
 #include <kern_include/vm/uma.h>
 
@@ -63,8 +63,9 @@ m_tag_delete_chain(struct mbuf *m, struct m_tag *t)
 void
 m_freem(struct mbuf *m)
 {
-	while (m != NULL)
+	while (m != NULL) {
 		m = m_free(m);
+	}
 }
 
 void
