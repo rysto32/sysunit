@@ -56,6 +56,11 @@ namespace PktGen
 		}
 
 		bool operator==(const EtherAddr &) const;
+
+		bool operator!=(const EtherAddr & rhs) const
+		{
+			return !(*this == rhs);
+		}
 	};
 
 	inline std::ostream & operator<<(std::ostream & os, const EtherAddr & addr)
