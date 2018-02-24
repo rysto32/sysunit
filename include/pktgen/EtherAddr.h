@@ -33,6 +33,8 @@
 #include <kern_include/net/ethernet.h>
 
 #include <stdint.h>
+#include <iomanip>
+#include <ostream>
 
 namespace PktGen
 {
@@ -40,6 +42,8 @@ namespace PktGen
 	{
 	private:
 		struct ether_addr addr;
+
+		friend std::ostream & operator<<(std::ostream & os, const EtherAddr & addr);
 
 	public:
 		EtherAddr();
@@ -53,6 +57,24 @@ namespace PktGen
 
 		bool operator==(const EtherAddr &) const;
 	};
+
+	inline std::ostream & operator<<(std::ostream & os, const EtherAddr & addr)
+	{
+		const uint8_t *octet = addr.GetAddr();
+		auto f(os.flags());
+
+		const char *sep = "";
+		for (int i = 0; i < ETHER_ADDR_LEN; ++i) {
+			os << sep;
+			os << std::hex << std::setw(2) << std::setfill('0');
+			os << (u_int)octet[i];
+			os.flags(f);
+
+			sep = ":";
+		}
+
+		return os;
+	}
 }
 
 #endif
