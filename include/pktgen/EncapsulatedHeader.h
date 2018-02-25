@@ -161,14 +161,6 @@ namespace PktGen
 			return lhs.EncapIn(rhs);
 		}
 
-		void print(int depth)
-		{
-			PrintIndent(depth, "Encapped %s/%s : {", LayerStr(Upper::LAYER), LayerStr(Lower::LAYER));
-			upper.print(depth + 1);
-			lower.print(depth + 1);
-			PrintIndent(depth, "}");
-		}
-
 		const auto & GetLower() const
 		{
 			return lower;
@@ -177,6 +169,14 @@ namespace PktGen
 		const auto & GetUpper() const
 		{
 			return upper;
+		}
+
+		void print(int depth)
+		{
+			PrintIndent(depth, "Encapped %s/%s : {", LayerStr(Upper::LAYER), LayerStr(Lower::LAYER));
+			upper.print(depth + 1);
+			lower.print(depth + 1);
+			PrintIndent(depth, "}");
 		}
 	};
 
