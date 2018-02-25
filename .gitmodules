@@ -1,3 +1,4 @@
 [submodule "freebsd"]
 	path = freebsd
-	url = rstone-server:/repos/git-daemon/freebsd.git
+	url = https://github.com/rysto32/freebsd.git
+	branch = ut-support
