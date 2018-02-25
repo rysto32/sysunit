@@ -33,8 +33,6 @@
 #include "pktgen/TcpMatcher.h"
 #include "pktgen/TcpHeader.h"
 
-#include "pktgen/TcpFlow.h"
-
 #include <gtest/gtest.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>

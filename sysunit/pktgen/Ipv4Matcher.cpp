@@ -31,8 +31,6 @@
 #include "pktgen/Ipv4Matcher.h"
 #include "pktgen/Ipv4Header.h"
 
-#include "pktgen/Ipv4Flow.h"
-
 extern "C" {
 #include "kern_include/sys/types.h"
 #include "kern_include/netinet/in.h"
