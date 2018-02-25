@@ -43,17 +43,18 @@ extern "C" {
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
+#include "pktgen/PacketPayloadTemplate.h"
 
 namespace PktGen
 {
 	class Ipv4Template
 	{
 	private:
-		uint8_t header_len;
+		uint8_t headerLen;
 		uint8_t tos;
 		uint16_t id;
 		uint16_t off;
-		uint32_t len;
+		uint16_t ipLen;
 		uint8_t ttl;
 		uint8_t proto;
 		uint16_t checksum;
@@ -67,11 +68,11 @@ namespace PktGen
 		static const auto LAYER = Layer::L3;
 
 		Ipv4Template()
-		  : header_len(sizeof(struct ip) / sizeof(uint32_t)),
+		  : headerLen(sizeof(struct ip) / sizeof(uint32_t)),
 		    tos(0),
 		    id(0),
 		    off(0),
-		    len(header_len),
+		    ipLen(GetLen()),
 		    ttl(255),
 		    proto(0),
 		    checksum(0),
@@ -82,7 +83,7 @@ namespace PktGen
 
 		uint8_t GetHeaderLen() const
 		{
-			return header_len;
+			return headerLen;
 		}
 
 		uint8_t GetTos() const
@@ -110,9 +111,9 @@ namespace PktGen
 			return off;
 		}
 
-		uint32_t GetIpLen() const
+		uint16_t GetIpLen() const
 		{
-			return len;
+			return ipLen;
 		}
 
 		uint8_t GetTtl() const
@@ -185,6 +186,11 @@ namespace PktGen
 			checksumPassed = v;
 		}
 
+		void SetPayloadLength(size_t payLen)
+		{
+			ipLen = GetLen() + payLen;
+		}
+
 		constexpr static uint16_t GetEthertype()
 		{
 			return ETHERTYPE_IP;
@@ -194,12 +200,11 @@ namespace PktGen
 		{
 			auto * ip = GetMbufHeader<struct ip>(m, offset);
 
-			ip->ip_hl = hton(header_len);
+			ip->ip_hl = hton(headerLen);
 			ip->ip_v = 4;
 
-			uint16_t ip_len = GetLen() + parentLen;
 			ip->ip_tos = hton(tos);
-			ip->ip_len = hton(ip_len);
+			ip->ip_len = hton(ipLen);
 			ip->ip_id = hton(id);
 			ip->ip_off = hton(off);
 			ip->ip_ttl = hton(ttl);
@@ -220,15 +225,18 @@ namespace PktGen
 
 		size_t GetLen() const
 		{
-			return header_len * sizeof(uint32_t);
+			return headerLen * sizeof(uint32_t);
 		}
 
 		struct EncapFieldSetter
 		{
-			template <typename T>
-			void operator()(T & t)
+			template <typename Header>
+			Header operator()(const Header & h, const Ipv4Template & t) const
 			{
-				ethertype(GetEthertype())(t);
+				return h.template WithHeaders<Layer::L2>(
+				    ethertype(GetEthertype()),
+				    PayloadSizeField(t.ipLen)
+				);
 			}
 		};
 
@@ -236,6 +244,7 @@ namespace PktGen
 		{
 			PrintIndent(depth, "IPv4 : {");
 			PrintIndent(depth + 1, "proto : %d", proto);
+			PrintIndent(depth + 1, "ip_len : %d", ipLen);
 			PrintIndent(depth, "}");
 		}
 	};

@@ -187,6 +187,18 @@ namespace PktGen
 		}
 	};
 
+	template <typename Lower, typename Upper, typename... Headers>
+	auto PacketTemplate(const Lower & l, const Upper & h, Headers... rest)
+	{
+		return l.Encapsulate(PacketTemplate(h, rest...));
+	}
+
+	template <typename Header>
+	auto PacketTemplate(const Header & h)
+	{
+		return h;
+	}
+
 	template <typename T>
 	inline T * GetMbufHeader(mbuf * m, size_t offset)
 	{

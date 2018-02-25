@@ -102,6 +102,10 @@ namespace PktGen {
 			return sizeof(struct ether_header);
 		}
 
+		void SetPayloadLength(size_t)
+		{
+		}
+
 		void print(int depth)
 		{
 			PrintIndent(depth, "Ether : {");

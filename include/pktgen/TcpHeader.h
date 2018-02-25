@@ -41,6 +41,7 @@ extern "C" {
 #include "pktgen/Layer.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/L4Fields.h"
+#include "pktgen/PacketPayloadTemplate.h"
 
 namespace PktGen
 {
@@ -60,6 +61,7 @@ namespace PktGen
 
 		bool checksumVerified;
 		bool checksumPassed;
+		size_t payloadLength;
 
 	public:
 		static const auto LAYER = Layer::L4;
@@ -228,19 +230,28 @@ namespace PktGen
 			return th_off * sizeof(uint32_t);
 		}
 
+		void SetPayloadLength(size_t len)
+		{
+			payloadLength = len;
+		}
+
 		struct EncapFieldSetter
 		{
-			template <typename T>
-			void operator()(T & t)
+			template <typename Header>
+			Header operator()(const Header & h, const TcpTemplate & t) const
 			{
-				// XXX need to guarantee proto() is in scope
-				proto(GetIpProto())(t);
+				return h.template WithHeaders<Layer::L3>(
+				    PayloadSizeField(t.GetLen() + t.payloadLength),
+				    proto(t.GetIpProto())
+				);
 			}
 		};
 
 		void print(int depth)
 		{
 			PrintIndent(depth, "TCP : {");
+			PrintIndent(depth + 1, "seq : %d", th_seq);
+			PrintIndent(depth + 1, "payloadLen : %d", payloadLength);
 			PrintIndent(depth, "}");
 		}
 	};

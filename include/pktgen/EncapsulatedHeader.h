@@ -61,10 +61,40 @@ namespace PktGen
 		{
 		}
 
-		template <typename... Fields>
-		SelfType With(Fields... f) const
+		template <typename Generator>
+		SelfType ApplyGenerator(Generator & gen) const
 		{
-			return SelfType(lower, upper.With(f...));
+			auto newUpper(upper.ApplyGenerator(gen));
+			auto newLower(lower.ApplyGenerator(gen));
+			return SelfType(newLower, newUpper);
+		}
+
+		template <typename Field>
+		static typename std::enable_if<!std::is_void<typename Field::DownwardFieldGenerator>::value, SelfType>::type
+		Apply(Field f, SelfType u)
+		{
+			typename Field::DownwardFieldGenerator ret;
+			Upper newUpper(Upper::Apply(f, u.upper, ret));
+			return SelfType(u.lower.ApplyGenerator(ret), newUpper);
+		}
+
+		template <typename Field>
+		static typename std::enable_if<std::is_void<typename std::invoke_result<Field, typename Upper::UnderlyingHeader &>::type>::value, SelfType>::type
+		Apply(Field f, SelfType u)
+		{
+			SelfType header (u.lower, u.upper.With(f));
+			return header;
+		}
+
+		SelfType With() const
+		{
+			return *this;
+		}
+
+		template <typename Field, typename... Args>
+		SelfType With(Field f, Args... args) const
+		{
+			return SelfType::Apply(f, With(args...));
 		}
 
 		template <Layer layer, typename ... Fields>
@@ -154,7 +184,7 @@ namespace PktGen
 	EncapsulatedHeader<Lower, Upper> MakeEncapsulation(const Lower & low, const Upper & up)
 	{
 		typename Upper::EncapFieldSetter setter;
-		return EncapsulatedHeader<Lower, Upper>(low.With(setter), up);
+		return EncapsulatedHeader<Lower, Upper>(setter(low, up), up);
 	}
 
 	template <typename LowerMatcher, typename UpperMatcher>

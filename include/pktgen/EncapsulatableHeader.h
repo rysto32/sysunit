@@ -35,9 +35,10 @@ namespace PktGen
 {
 	struct NullEncapFieldSetter
 	{
-		template <typename T>
-		void operator()(T &)
+		template <typename Lower, typename Upper>
+		Lower operator()(const Lower & l, const Upper &) const
 		{
+			return l;
 		}
 	};
 
@@ -58,15 +59,38 @@ namespace PktGen
 		}
 
 		static const auto LAYER = Header::LAYER;
-		typedef typename Header::EncapFieldSetter EncapFieldSetter;
+		typedef Header UnderlyingHeader;
+
+		struct EncapFieldSetter
+		{
+			template <typename Lower>
+			Lower operator()(const Lower & l, const SelfType & t) const
+			{
+				typename Header::EncapFieldSetter setter;
+				return setter(l, t.header);
+			}
+		};
 
 		auto With() const
 		{
 			return *this;
 		}
 
+		template <typename Generator>
+		SelfType ApplyGenerator(Generator & gen) const
+		{
+			return SelfType(gen.Apply(header));
+		}
+
 		template <typename Field>
-		SelfType Apply(Field f, SelfType h) const
+		static SelfType Apply(Field f, SelfType h, typename Field::ApplyReturn & ret)
+		{
+			ret = f(h.header);
+			return EncapsulatableHeader<Header>(h);
+		}
+
+		template <typename Field>
+		static SelfType Apply(Field f, SelfType h)
 		{
 			f(h.header);
 			return EncapsulatableHeader<Header>(h);
