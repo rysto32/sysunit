@@ -34,6 +34,7 @@
 #include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/EtherAddr.h"
 #include "pktgen/Layer.h"
+#include "pktgen/L2Fields.h"
 
 namespace PktGen {
 
@@ -115,24 +116,9 @@ namespace PktGen {
 		}
 	};
 
-	auto EthernetHeader()
+	auto inline EthernetHeader()
 	{
 		return EncapsulatableHeader<EthernetTemplate>();
-	}
-
-	auto dstMac(EtherAddr a)
-	{
-		return [a](auto & h) { h.SetDstAddr(a); };
-	}
-
-	auto srcMac(EtherAddr a)
-	{
-		return [a](auto & h) { h.SetSrcAddr(a); };
-	}
-
-	auto ethertype(uint16_t t)
-	{
-		return [t](auto & h) { h.SetEthertype(t); };
 	}
 }
 

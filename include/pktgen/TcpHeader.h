@@ -39,6 +39,8 @@ extern "C" {
 
 #include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Layer.h"
+#include "pktgen/L3Fields.h"
+#include "pktgen/L4Fields.h"
 
 namespace PktGen
 {
@@ -243,46 +245,9 @@ namespace PktGen
 		}
 	};
 
-	auto TcpHeader()
+	auto inline TcpHeader()
 	{
 		return EncapsulatableHeader<TcpTemplate>();
-	}
-
-	auto srcPort(uint16_t x)
-	{
-		return [x](auto & h) { h.SetSrcPort(x); };
-	}
-
-	auto dstPort(uint16_t x)
-	{
-		return [x](auto & h) { h.SetDstPort(x); };
-	}
-
-	auto seq(uint32_t x)
-	{
-		return [x](auto & h) { h.SetSeq(x); };
-	}
-
-	auto ack(uint32_t x)
-	{
-		return [x](auto & h) { h.SetAck(x); };
-	}
-
-	auto flags(uint8_t x)
-	{
-		return [x](auto & h) { h.SetFlags(x); };
-	}
-
-	auto window(uint16_t x)
-	{
-		return [x](auto & h) { h.SetWindow(x); };
-	}
-
-	// Note: checksum() has a compatible definition in TcpHeader.h
-
-	auto urp(uint16_t x)
-	{
-		return [x](auto & h) { h.SetUrgentPointer(x); };
 	}
 }
 

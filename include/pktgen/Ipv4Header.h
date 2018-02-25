@@ -41,6 +41,8 @@ extern "C" {
 #include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Ipv4Addr.h"
 #include "pktgen/Layer.h"
+#include "pktgen/L2Fields.h"
+#include "pktgen/L3Fields.h"
 
 namespace PktGen
 {
@@ -238,54 +240,9 @@ namespace PktGen
 		}
 	};
 
-	auto Ipv4Header()
+	auto inline Ipv4Header()
 	{
 		return EncapsulatableHeader<Ipv4Template>();
-	}
-
-	auto tos(uint8_t x)
-	{
-		return [x](auto & h) { h.SetTos(x); };
-	}
-
-	auto id(uint16_t x)
-	{
-		return [x](auto & h) { h.SetId(x); };
-	}
-
-	auto ttl(uint8_t x)
-	{
-		return [x](auto & h) { h.SetTtl(x); };
-	}
-
-	auto proto(uint8_t x)
-	{
-		return [x](auto & h) { h.SetProto(x); };
-	}
-
-	auto checksum(uint16_t x)
-	{
-		return [x](auto & h) { h.SetChecksum(x); };
-	}
-
-	auto srcIp(const Ipv4Addr & x)
-	{
-		return [x](auto & h) { h.SetSrc(x); };
-	}
-
-	auto dstIp(const Ipv4Addr & x)
-	{
-		return [x](auto & h) { h.SetDst(x); };
-	}
-
-	auto checksumVerified(bool verified = true)
-	{
-		return [verified] (auto & h) { h.SetChecksumVerified(verified); };
-	}
-
-	auto checksumPassed(bool valid = true)
-	{
-		return [valid] (auto & h) { h.SetChecksumPassed(valid); };
 	}
 }
 
