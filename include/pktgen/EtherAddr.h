@@ -48,7 +48,7 @@ namespace PktGen
 	public:
 		EtherAddr();
 		explicit EtherAddr(const uint8_t *);
-		explicit EtherAddr(const char *);
+		EtherAddr(const char *);
 
 		const uint8_t * GetAddr() const
 		{
