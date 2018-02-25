@@ -28,14 +28,11 @@
 
 #define _KERNEL_UT 1
 
-#include "pktgen/EtherFlow.h"
-#include "pktgen/Ipv4Flow.h"
-#include "pktgen/TcpFlow.h"
 
-#include "pktgen/EtherMatcher.h"
-#include "pktgen/Ipv4Matcher.h"
-#include "pktgen/PayloadMatcher.h"
-#include "pktgen/TcpMatcher.h"
+#include "pktgen/Ethernet.h"
+#include "pktgen/Ipv4.h"
+#include "pktgen/PacketPayload.h"
+#include "pktgen/Tcp.h"
 
 extern "C" {
 #include <kern_include/net/if.h>
