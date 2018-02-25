@@ -28,6 +28,7 @@
 
 #define _KERNEL_UT 1
 
+#include <stdarg.h>
 
 #include "pktgen/Ethernet.h"
 #include "pktgen/Ipv4.h"
@@ -50,6 +51,37 @@ extern "C" {
 
 #include "mock/ifnet.h"
 #include "mock/time.h"
+
+// Debug printing
+void PrintIndent(int depth, const char * fmt, ...)
+{
+	for (int i = 0; i < depth; ++i)
+		printf("    ");
+
+	va_list args;
+	va_start (args, fmt);
+	vprintf(fmt, args);
+	va_end(args);
+
+	printf("\n");
+}
+
+
+const char * LayerStr(PktGen::Layer l)
+{
+	switch (l) {
+		case PktGen::Layer::L2:
+			return "L2";
+		case PktGen::Layer::L3:
+			return "L3";
+		case PktGen::Layer::L4:
+			return "L4";
+		case PktGen::Layer::PAYLOAD:
+			return "PAYLOAD";
+		default:
+			return "UNKNOWN";
+	}
+}
 
 using namespace PktGen;
 using namespace testing;
