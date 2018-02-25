@@ -33,6 +33,14 @@
 
 namespace PktGen
 {
+	struct NullEncapFieldSetter
+	{
+		template <typename T>
+		void operator()(T &)
+		{
+		}
+	};
+
 	template <typename Header>
 	class EncapsulatableHeader
 	{

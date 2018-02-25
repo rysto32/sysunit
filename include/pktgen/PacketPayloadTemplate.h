@@ -48,9 +48,12 @@ namespace PktGen
 		PayloadVector payload;
 
 	public:
-		PayloadTemplate() = default;
-
 		static const auto LAYER = Layer::PAYLOAD;
+
+		// This is to appease EncapsulatableHeader
+		typedef NullEncapFieldSetter EncapFieldSetter;
+
+		PayloadTemplate() = default;
 
 		void SetPayload(const PayloadVector & p)
 		{
@@ -70,15 +73,6 @@ namespace PktGen
 		{
 			return payload.size();
 		}
-
-		// This is to appease EncapsulatableHeader
-		struct EncapFieldSetter
-		{
-			template <typename T>
-			void operator()(T &)
-			{
-			}
-		};
 
 		const PayloadVector & GetPayload() const
 		{

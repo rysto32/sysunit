@@ -48,6 +48,9 @@ namespace PktGen {
 	public:
 		static const auto LAYER = Layer::L2;
 
+		// This is to appease EncapsulatableHeader
+		typedef NullEncapFieldSetter EncapFieldSetter;
+
 		EthernetTemplate()
 		  : ethertype(0)
 		{
@@ -98,15 +101,6 @@ namespace PktGen {
 		{
 			return sizeof(struct ether_header);
 		}
-
-		// This is to appease EncapsulatableHeader
-		struct EncapFieldSetter
-		{
-			template <typename T>
-			void operator()(T &)
-			{
-			}
-		};
 
 		void print(int depth)
 		{
