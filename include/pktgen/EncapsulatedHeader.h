@@ -171,6 +171,11 @@ namespace PktGen
 			return upper;
 		}
 
+		SelfType Next() const
+		{
+			return SelfType(lower.Next(), upper.Next());
+		}
+
 		void print(int depth)
 		{
 			PrintIndent(depth, "Encapped %s/%s : {", LayerStr(Upper::LAYER), LayerStr(Lower::LAYER));

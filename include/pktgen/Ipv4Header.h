@@ -240,6 +240,13 @@ namespace PktGen
 			}
 		};
 
+		Ipv4Template Next() const
+		{
+			Ipv4Template copy(*this);
+			copy.SetId(id + 1);
+			return copy;
+		}
+
 		void print(int depth)
 		{
 			PrintIndent(depth, "IPv4 : {");

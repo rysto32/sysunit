@@ -235,6 +235,13 @@ namespace PktGen
 			payloadLength = len;
 		}
 
+		TcpTemplate Next() const
+		{
+			TcpTemplate copy(*this);
+			copy.SetSeq(th_seq + payloadLength);
+			return copy;
+		}
+
 		struct EncapFieldSetter
 		{
 			template <typename Header>

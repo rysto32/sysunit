@@ -160,6 +160,11 @@ namespace PktGen
 			return header;
 		}
 
+		SelfType Next() const
+		{
+			return SelfType(header.Next());
+		}
+
 		void print(int depth)
 		{
 			PrintIndent(depth, "Encapable %s : {", LayerStr(LAYER));

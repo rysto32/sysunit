@@ -106,6 +106,11 @@ namespace PktGen {
 		{
 		}
 
+		EthernetTemplate Next() const
+		{
+			return *this;
+		}
+
 		void print(int depth)
 		{
 			PrintIndent(depth, "Ether : {");

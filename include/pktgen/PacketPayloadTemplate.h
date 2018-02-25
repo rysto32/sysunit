@@ -188,6 +188,11 @@ namespace PktGen
 			return payload;
 		}
 
+		PayloadTemplate Next() const
+		{
+			return *this;
+		}
+
 		void print(int depth)
 		{
 			PrintIndent(depth, "Payload = {");
