@@ -66,7 +66,7 @@ namespace PktGen
 
 	#define	CheckField(field, expect) do { \
 		if (ntoh(field) != (expect)) { \
-			*listener << #expect << " field is " << ntoh(field) << " (expected " << field << ")";; \
+			*listener << "IPv4: " << #expect << " field is " << ntoh(field) << " (expected " << expect << ")";; \
 			return false; \
 		} \
 	} while (0)
