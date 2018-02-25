@@ -71,13 +71,16 @@ namespace PktGen
 		}
 	};
 
+	template <typename Setter>
 	class PayloadField
 	{
 		std::vector<uint8_t> payload;
+		Setter setter;
 
 	public:
-		PayloadField(std::vector<uint8_t> && p)
-		  : payload(p)
+		PayloadField(std::vector<uint8_t> && p, Setter s)
+		  : payload(p),
+		    setter(s)
 		{
 		}
 
@@ -87,28 +90,7 @@ namespace PktGen
 		template <typename Header>
 		ApplyReturn operator()(Header & h) const
 		{
-			h.SetPayload(payload);
-			return DownwardFieldGenerator(payload.size());
-		}
-	};
-
-	class AppendPayloadField
-	{
-		std::vector<uint8_t> payload;
-
-	public:
-		AppendPayloadField(std::vector<uint8_t> && p)
-		  : payload(p)
-		{
-		}
-
-		typedef PayloadLengthGenerator DownwardFieldGenerator;
-		typedef DownwardFieldGenerator ApplyReturn;
-
-		template <typename Header>
-		ApplyReturn operator()(Header & h) const
-		{
-			h.AppendPayload(payload);
+			setter(h, payload);
 			return DownwardFieldGenerator(h.GetLen());
 		}
 	};
@@ -199,6 +181,22 @@ namespace PktGen
 			PrintIndent(depth + 1, "len = %zd", GetLen());
 			PrintIndent(depth, "}");
 		}
+
+		static PayloadVector FillPayload(const std::string & str, size_t count)
+		{
+			PayloadTemplate::PayloadVector p;
+
+			while (count > 0) {
+				for (auto ch : str) {
+					p.push_back(ch);
+					count--;
+					if (count == 0)
+						break;
+				}
+			}
+
+			return p;
+		}
 	};
 
 	auto inline PacketPayload()
@@ -206,36 +204,20 @@ namespace PktGen
 		return EncapsulatableHeader(PayloadTemplate());
 	}
 
-	auto inline payload(PayloadTemplate::PayloadVector p)
-	{
-		return PayloadField(std::move(p));
-	}
-
 	auto inline payload(PayloadTemplate::PayloadVector && p)
 	{
-		return PayloadField(std::move(p));
+		return PayloadField(std::move(p),
+		    [](auto & h, const PayloadTemplate::PayloadVector & p) { h.SetPayload(p); });
 	}
 
 	auto inline payload(uint8_t byte, size_t count = 1)
 	{
-		PayloadTemplate::PayloadVector p(count, byte);
-		return PayloadField(std::move(p));
+		return payload(PayloadTemplate::PayloadVector(count, byte));
 	}
 
 	auto inline payload(const std::string & str, size_t count)
 	{
-		PayloadTemplate::PayloadVector p;
-
-		while (count > 0) {
-			for (auto ch : str) {
-				p.push_back(ch);
-				count--;
-				if (count == 0)
-					break;
-			}
-		}
-
-		return PayloadField(std::move(p));
+		return payload(PayloadTemplate::FillPayload(str, count));
 	}
 
 	auto inline payload(const std::string & p)
@@ -243,20 +225,25 @@ namespace PktGen
 		return payload(p, p.size());
 	}
 
+	auto inline appendPayload(PayloadTemplate::PayloadVector && p)
+	{
+		return PayloadField(std::move(p),
+		    [](auto & h, const PayloadTemplate::PayloadVector & p) { h.AppendPayload(p); });
+	}
+
+	auto inline appendPayload(uint8_t byte, size_t count = 1)
+	{
+		return appendPayload(PayloadTemplate::PayloadVector(count, byte));
+	}
+
 	auto inline appendPayload(const std::string & str, size_t count)
 	{
-		PayloadTemplate::PayloadVector p;
+		return appendPayload(PayloadTemplate::FillPayload(str, count));
+	}
 
-		while (count > 0) {
-			for (auto ch : str) {
-				p.push_back(ch);
-				count--;
-				if (count == 0)
-					break;
-			}
-		}
-
-		return AppendPayloadField(std::move(p));
+	auto inline appendPayload(const std::string & p)
+	{
+		return appendPayload(p, p.size());
 	}
 }
 
