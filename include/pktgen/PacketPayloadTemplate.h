@@ -132,7 +132,7 @@ namespace PktGen
 			template <typename Header>
 			Header operator()(const Header & h, const PayloadTemplate & t) const
 			{
-				return h.template WithHeaders<Layer::L4>(
+				return h.template WithHeaderFields<Layer::L4>(
 				    PayloadSizeField(t.GetLen())
 				);
 			}

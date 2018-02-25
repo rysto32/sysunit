@@ -104,7 +104,7 @@ namespace PktGen
 
 		template <Layer layer, typename ... Fields>
 		typename std::enable_if<layer == LAYER, SelfType>::type
-		WithHeaders(Fields... f) const
+		WithHeaderFields(Fields... f) const
 		{
 			return With(f...);
 		}

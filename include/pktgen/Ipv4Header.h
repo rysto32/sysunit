@@ -233,7 +233,7 @@ namespace PktGen
 			template <typename Header>
 			Header operator()(const Header & h, const Ipv4Template & t) const
 			{
-				return h.template WithHeaders<Layer::L2>(
+				return h.template WithHeaderFields<Layer::L2>(
 				    ethertype(GetEthertype()),
 				    PayloadSizeField(t.ipLen)
 				);

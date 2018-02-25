@@ -99,16 +99,16 @@ namespace PktGen
 
 		template <Layer layer, typename ... Fields>
 		typename std::enable_if<layer == LAYER, SelfType>::type
-		WithHeaders(Fields... f) const
+		WithHeaderFields(Fields... f) const
 		{
 			return With(f...);
 		}
 
 		template <Layer layer, typename ... Fields>
 		typename std::enable_if<layer != LAYER, SelfType>::type
-		WithHeaders(Fields... f) const
+		WithHeaderFields(Fields... f) const
 		{
-			auto newLower(lower.template WithHeaders<layer>(f...));
+			auto newLower(lower.template WithHeaderFields<layer>(f...));
 
 			return SelfType(newLower, upper);
 		}
@@ -142,7 +142,7 @@ namespace PktGen
 		// always in canonical form, with the top level template of
 		// type EncapsulatedHeader<EncapsulatedHeader<...>, UpperMostProtocol>,
 		// rather than EncapsulatedHeader<LowestProtocol, EncapsulatedHeader<...>>
-		// The algorithm in WithHeaders() depends on this.
+		// The algorithm in WithHeaderFields() depends on this.
 		template <typename Deepest>
 		auto EncapIn(Deepest origDeepest) const
 		{

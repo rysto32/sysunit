@@ -247,7 +247,7 @@ namespace PktGen
 			template <typename Header>
 			Header operator()(const Header & h, const TcpTemplate & t) const
 			{
-				return h.template WithHeaders<Layer::L3>(
+				return h.template WithHeaderFields<Layer::L3>(
 				    PayloadSizeField(t.GetLen() + t.payloadLength),
 				    proto(t.GetIpProto())
 				);
