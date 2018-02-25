@@ -93,35 +93,74 @@ class TcpLroTestSuite : public SysUnit::TestSuite
 {
 };
 
+// Generate a single TCP/IPv4 packet and send it through tcp_lro_rx().  Verify
+// that the packet is passed to if_input(), and that it's unmodified.
 TEST_F(TcpLroTestSuite, TestSingleTcp4)
 {
-	GlobalMockTimeval mockTv;
-	StrictMock<MockIfnet> mockIfp("test", 0);
-	struct lro_ctrl lc;
+	// Create a packet template.  This template describes a TCP/IP packet
+	// with a payload of 7 nul (0x00) bytes.  The mbuf will have flags set
+	// to indicate that hardware checksum offload verified the L3/L4
+	// and the checksums passed the check.
+	auto pktTemplate = PacketTemplate(
+	    EthernetHeader()
+	        .With(
+		    srcMac("02:f0:e0:d0:c0:b0"),
+		    dstMac("02:05:04:0c:02:01")
+		),
+	     Ipv4Header()
+	        .With(
+	            srcIp("192.168.1.1"),
+		    dstIp("192.168.1.10"),
+		    checksumVerified(),
+		    checksumPassed()
+		 ),
+	    TcpHeader()
+	        .With(
+		    srcPort(11965),
+		    dstPort(54321),
+		    checksumVerified(),
+		    checksumPassed()
+		),
+	    PacketPayload()
+	        .With(
+		    payload(0x00, 7)
+		 )
+	);
 
+	// Initialize mocks.  Mocks are used to implement kernel APIs depended
+	// on by the code being tested.
+	// The MockTime interface is used to implement time-based APIs.  In this
+	// case it's used for its implementation of getmicrotime().
+	GlobalMockTime mockTv;
+
+	// A MockIfnet instance mocks the APIs provided by callbacks in struct ifnet.
+	// This ifnet will be named mock0
+	StrictMock<MockIfnet> mockIfp("mock", 0);
+
+	// Inform the mock to expect a single call to getmicrotime(), and specify the
+	// value that will be returned to the code under test when it's called.
+	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+
+	// Inform the mock that we expect tcp_lro to pass in a packet matching out
+	// template exactly once.  The test will fail if if_input() is not called
+	// exactly 1 time, or if it is called but with a packet that does not match
+	// the template.
+	EXPECT_CALL(mockIfp, if_input(PacketMatcher(pktTemplate)))
+	    .Times(1);
+
+	// Initialize tcp_lro's state
+	struct lro_ctrl lc;
 	tcp_lro_init(&lc);
 	lc.ifp = mockIfp.GetIfp();
 
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
-
-	EtherFlow ether("02:f0:e0:d0:c0:b0", "02:05:04:0c:02:01");
-	Ipv4Flow ip(ether, "192.168.1.1", "192.168.1.10");
-	TcpFlow tcp(ip, 11965, 54321, 0, 0);
-
-	Packet m = tcp.GetNextPacket(0, 5);
-
-	EXPECT_CALL(mockIfp, if_input(AllOf(
-	    EtherHeader(ether, ip.GetEtherType(), m.GetHeaderOffset(Packet::Layer::L2)),
-	    Ipv4Header(ip, tcp.GetIpProto(), m.GetL3Len(), m.GetHeaderOffset(Packet::Layer::L3)),
-	    TcpHeader(tcp, m.GetHeaderOffset(Packet::Layer::L4)),
-	    Payload(5, m.GetHeaderOffset(Packet::Layer::PAYLOAD))
-	))).Times(1);
-
-	m->m_pkthdr.csum_flags |= CSUM_IP_CHECKED | CSUM_IP_VALID | CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
-
-	int ret = tcp_lro_rx(&lc, m.release(), 0);
+	// Pass an mbuf based on our template to tcp_lro_rx(), and test the return
+	// value to confirm that tcp_lro_rx() accepted the mbuf.
+	int ret = tcp_lro_rx(&lc, pktTemplate.Generate(), 0);
 	ASSERT_EQ(ret, 0);
 
+	// Flush tcp_lro.  This should cause the mbuf generated above to be flushed
+	// and sent to if_input(), at which point the mockIfp will see it and verify
+	// that the packet made it through tcp_lro without being modified.
 	tcp_lro_flush_all(&lc);
 }
 
