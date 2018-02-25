@@ -164,48 +164,87 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 	tcp_lro_flush_all(&lc);
 }
 
-TEST_F(TcpLroTestSuite, TestMergeTcp4)
+// Create two packets from the same TCP/IPv4 flow in sequence and send them
+// into tcp_lro.  Verify that that LRO merges the frames into a single larger
+// frame with the headers of the first packet and a payload containing the
+// combined payloads of both frames.
+TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 {
-	GlobalMockTimeval mockTv;
-	StrictMock<MockIfnet> mockIfp("test", 0);
-	struct lro_ctrl lc;
+	// Create a packet template.  This template describes a TCP/IP packet
+	// with a payload of 5 bytes (the characters "12345").  The mbuf will have
+	// flags set to indicate that hardware checksum offload verified the
+	// L3/L4 and the checksums passed the check.
+	auto pktTemplate1 = PacketTemplate(
+	    EthernetHeader()
+	        .With(
+		    srcMac("02:f0:e0:d0:c0:b0"),
+		    dstMac("02:05:04:0c:02:01")
+		),
+	     Ipv4Header()
+	        .With(
+	            srcIp("192.168.1.1"),
+		    dstIp("192.168.1.10"),
+		    checksumVerified(),
+		    checksumPassed()
+		 ),
+	    TcpHeader()
+	        .With(
+		    srcPort(11965),
+		    dstPort(54321),
+		    seq(258958),
+		    checksumVerified(),
+		    checksumPassed()
+		),
+	    PacketPayload()
+	        .With(
+		    payload("12345")
+		 )
+	);
 
+	// Generate a second template that is the next in the TCP sequence.
+	// This will have a 3-byte payload ("678")
+	auto pktTemplate2 = pktTemplate1.Next()
+	    .WithHeaders<Layer::PAYLOAD>(
+		payload("678")
+	    )
+	;
+
+	// Generate a template representing what we expect to be sent to
+	// if_input().  The packet should have the same headers as the
+	// first template, but with the 3-byte payload of the second
+	// packet appended.
+	auto expected = pktTemplate1.With(appendPayload("678"));
+
+	// Initialize the same mocks as last time.
+	GlobalMockTime mockTv;
+	StrictMock<MockIfnet> mockIfp("mock", 0);
+
+	// getmicrotime() is called once per packet, so set it to expect to be
+	// called twice.  The second call will look like it happend 250us after
+	// the first.
+	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
+
+	// Tell the mockIfp to expect the single merged packet
+	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	    .Times(1);
+
+	// Initialize the code that we're testing.
+	struct lro_ctrl lc;
 	tcp_lro_init(&lc);
 	lc.ifp = mockIfp.GetIfp();
 
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 700});
-
-	EtherFlow ether("02:01:02:03:04:05", "02:05:04:03:02:01");
-	Ipv4Flow ip(ether, "192.168.1.1", "192.168.1.10");
-	TcpFlow tcp(ip, 11965, 54321, 0, 0);
-
-	const auto csum_flags = CSUM_IP_CHECKED | CSUM_IP_VALID | CSUM_DATA_VALID | CSUM_PSEUDO_HDR;
-
-	const auto first_payload_len = 5;
-
-	Packet m = tcp.GetNextPacket(0, first_payload_len, "12345");
-	m->m_pkthdr.csum_flags |= csum_flags;
-
-	const auto second_payload_len = 4;
-	const auto iplen = m.GetL3Len() + second_payload_len;
-
-	EXPECT_CALL(mockIfp, if_input(AllOf(
-	    EtherHeader(ether, ip.GetEtherType(), m.GetHeaderOffset(Packet::Layer::L2)),
-	    Ipv4Header(ip, tcp.GetIpProto(), iplen, m.GetHeaderOffset(Packet::Layer::L3)),
-	    TcpHeader(tcp, m.GetHeaderOffset(Packet::Layer::L4)),
-	    Payload("123456789", first_payload_len + second_payload_len, m.GetHeaderOffset(Packet::Layer::PAYLOAD))
-	))).Times(1);
-
-	Packet m2 = tcp.GetNextPacket(0, second_payload_len, "6789");
-	m2->m_pkthdr.csum_flags |= csum_flags;
-
-	int ret = tcp_lro_rx(&lc, m.release(), 0);
+	// Send the two frames in sequence to tcp_lro_rx().  Test the return
+	// value from each call.
+	int ret = tcp_lro_rx(&lc, pktTemplate1.Generate(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&lc, m2.release(), 0);
+	ret = tcp_lro_rx(&lc, pktTemplate2.Generate(), 0);
 	ASSERT_EQ(ret, 0);
 
+	// Flush tcp_lro.  If LRO is working then if_input() will receive a
+	// single merged packet, which it will validate against the template
+	// we provided.
 	tcp_lro_flush_all(&lc);
 }
 
