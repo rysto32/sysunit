@@ -41,7 +41,7 @@ uma_zcreate(const char *name, size_t size, uma_ctor ctor,
 void
 uma_zdestroy(uma_zone_t zone)
 {
-	assert (zone->alloced == 0);
+	EXPECT_EQ(zone->alloced, 0) << "Leaked memory from uma zone " << zone->name;
 	delete zone;
 }
 
@@ -66,7 +66,8 @@ uma_zalloc_arg(uma_zone_t zone, void * arg, int flags)
 void
 uma_zfree_arg(uma_zone_t zone, void *mem, void *arg)
 {
-	assert (zone->alloced > 0);
+	EXPECT_GT(zone->alloced, 0) << "Unexpected uma_zfree_arg call on uma zone "
+	   << zone-> name << " (possibly due to double free)";
 	zone->alloced--;
 
 	if (zone->dtor != NULL)
