@@ -31,9 +31,11 @@
 
 #include "fake/mbuf.h"
 
+extern "C" {
 #include <kern_include/sys/types.h>
 #include <kern_include/netinet/in.h>
 #include <kern_include/netinet/ip.h>
+}
 
 #include <gmock/gmock-matchers.h>
 

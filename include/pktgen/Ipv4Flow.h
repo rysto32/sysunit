@@ -29,7 +29,9 @@
 #ifndef PKTGEN_IPV4_FLOW_H
 #define PKTGEN_IPV4_FLOW_H
 
+extern "C" {
 #include <netinet/in.h>
+}
 
 #include "pktgen/L3Flow.h"
 
