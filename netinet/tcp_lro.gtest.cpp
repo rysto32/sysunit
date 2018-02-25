@@ -101,11 +101,14 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 	// with a payload of 7 nul (0x00) bytes.  The mbuf will have flags set
 	// to indicate that hardware checksum offload verified the L3/L4
 	// and the checksums passed the check.
+	// The type is described as "auto" as writing out the actual type would
+	// be infeasible due to the heavy use of C++ templates in the packet
+	// template API.
 	auto pktTemplate = PacketTemplate(
 	    EthernetHeader()
 	        .With(
-		    srcMac("02:f0:e0:d0:c0:b0"),
-		    dstMac("02:05:04:0c:02:01")
+		    srcMac("00:35:59:25:ea:90"),
+		    dstMac("25:36:49:49:36:25")
 		),
 	     Ipv4Header()
 	        .With(
@@ -148,6 +151,8 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(pktTemplate)))
 	    .Times(1);
 
+	// Test setup is complete.  The code that follows is the actual test case.
+
 	// Initialize tcp_lro's state
 	struct lro_ctrl lc;
 	tcp_lro_init(&lc);
@@ -158,10 +163,47 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 	int ret = tcp_lro_rx(&lc, pktTemplate.Generate(), 0);
 	ASSERT_EQ(ret, 0);
 
-	// Flush tcp_lro.  This should cause the mbuf generated above to be flushed
+	// Flush tcp_lro.  This should cause the mbuf input above to be flushed
 	// and sent to if_input(), at which point the mockIfp will see it and verify
 	// that the packet made it through tcp_lro without being modified.
 	tcp_lro_flush_all(&lc);
+}
+
+// For convenience, this function can be called to create a
+// packet template for a pure TCP packet (no payload)
+static auto GetTcpTemplate()
+{
+	return PacketTemplate(
+	    EthernetHeader()
+	        .With(
+		    srcMac("02:f0:e0:d0:c0:b0"),
+		    dstMac("02:05:04:0c:02:01")
+		),
+	     Ipv4Header()
+	        .With(
+	            srcIp("1.25.37.187"),
+		    dstIp("57.8.9.63"),
+		    checksumVerified(),
+		    checksumPassed()
+		 ),
+	    TcpHeader()
+	        .With(
+		    srcPort(6995),
+		    dstPort(123),
+		    checksumVerified(),
+		    checksumPassed()
+		)
+	);
+}
+
+// This generates a packet template of a TCP/IP packet with a payload
+static auto GetPayloadTemplate()
+{
+	return PacketTemplate(
+		GetTcpTemplate(),
+		PacketPayload()
+	    );
+
 }
 
 // Create two packets from the same TCP/IPv4 flow in sequence and send them
@@ -174,40 +216,14 @@ TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 	// with a payload of 5 bytes (the characters "12345").  The mbuf will have
 	// flags set to indicate that hardware checksum offload verified the
 	// L3/L4 and the checksums passed the check.
-	auto pktTemplate1 = PacketTemplate(
-	    EthernetHeader()
-	        .With(
-		    srcMac("02:f0:e0:d0:c0:b0"),
-		    dstMac("02:05:04:0c:02:01")
-		),
-	     Ipv4Header()
-	        .With(
-	            srcIp("192.168.1.1"),
-		    dstIp("192.168.1.10"),
-		    checksumVerified(),
-		    checksumPassed()
-		 ),
-	    TcpHeader()
-	        .With(
-		    srcPort(11965),
-		    dstPort(54321),
-		    seq(258958),
-		    checksumVerified(),
-		    checksumPassed()
-		),
-	    PacketPayload()
-	        .With(
-		    payload("12345")
-		 )
-	);
+	auto pktTemplate1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::L4>(seq(258958))
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("12345"));
 
 	// Generate a second template that is the next in the TCP sequence.
 	// This will have a 3-byte payload ("678")
 	auto pktTemplate2 = pktTemplate1.Next()
-	    .WithHeaders<Layer::PAYLOAD>(
-		payload("678")
-	    )
-	;
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("678"));
 
 	// Generate a template representing what we expect to be sent to
 	// if_input().  The packet should have the same headers as the
@@ -229,12 +245,73 @@ TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
-	// Initialize the code that we're testing.
+	// Begin the testcase
 	struct lro_ctrl lc;
 	tcp_lro_init(&lc);
 	lc.ifp = mockIfp.GetIfp();
 
-	// Send the two frames in sequence to tcp_lro_rx().  Test the return
+	// Send the two frames in sequence to tcp_lro_rx() and verify the
+	// return value from each call.
+	int ret = tcp_lro_rx(&lc, pktTemplate1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&lc, pktTemplate2.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	// Flush tcp_lro.  If LRO is working then if_input() will receive a
+	// single merged packet, which it will validate against the template
+	// we provided.
+	tcp_lro_flush_all(&lc);
+}
+
+// Send a pure ACK from a TCP/IPv4 flow followed by a data frame.  Verify that
+// tcp_lro merges the two packets into a a single frame.
+TEST_F(TcpLroTestSuite, TestMergeAckData)
+{
+	const int firstId = 29559;
+
+	// This template represents a pure  ACK packet.
+	auto pktTemplate1 = GetTcpTemplate()
+	    .WithHeaderFields<Layer::L3>(id(firstId))
+	    .WithHeaderFields<Layer::L4>(flags(TH_ACK));
+
+	// Generate a second template that is the next in the TCP sequence.
+	// This will have a 20-byte payload
+	auto payloadTemplate = PacketPayload().With(payload("9581", 20));
+	auto pktTemplate2 = PacketTemplate(
+	    pktTemplate1.Next(),
+	    payloadTemplate
+	);
+
+	// Generate a template representing what we expect to be sent to
+	// if_input().  It will have all of the headers from the first
+	// packet but the "9581" payload of the second one
+	// (Note that the difference between this template and pktTemplate2
+	// is that pktTemplate2 was generated with pktTemplate1.Next(),
+	// which incremented the IP id.  The merged packet that will be
+	// sent to if_input() will have the id of the original ACK.)
+	auto expected = PacketTemplate(
+	    pktTemplate1,
+	    payloadTemplate
+	);
+
+	GlobalMockTime mockTv;
+	StrictMock<MockIfnet> mockIfp("mock", 0);
+
+	// getmicrotime() is called once per packet
+	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
+
+	// Tell the mockIfp to expect the single merged packet
+	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	    .Times(1);
+
+	// Begin the testcase.
+	struct lro_ctrl lc;
+	tcp_lro_init(&lc);
+	lc.ifp = mockIfp.GetIfp();
+
+	// Send the two frames in sequence to tcp_lro_rx().  Verify the return
 	// value from each call.
 	int ret = tcp_lro_rx(&lc, pktTemplate1.Generate(), 0);
 	ASSERT_EQ(ret, 0);
@@ -246,5 +323,50 @@ TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 	// single merged packet, which it will validate against the template
 	// we provided.
 	tcp_lro_flush_all(&lc);
+}
+
+// Send a pure ACK followed by a duplicate ACK.  Confirm that the original
+// ACK is sent up the second and the dup ACK is rejected by LRO (which would
+// force a real Ethernet driver to send the dup ACK up the stack immediately).
+TEST_F(TcpLroTestSuite, TestDupAck)
+{
+	auto origAck = GetTcpTemplate();
+
+	// Generate a dup ACK.  This should be a replica of the original
+	// ACK but with the IP id incremented.
+	auto dupAck = origAck.Next();
+
+	GlobalMockTime mockTv;
+	StrictMock<MockIfnet> mockIfp("mock", 0);
+
+	// Tell the mockIfp to expect the first ACK.  Because it is a dup ACK,
+	// it will reject the second packet, so if_input() won't see the second
+	// one.  In a real ethernet driver, the driver would then be responsible
+	// for sending the second packet up to if_input() itself.
+	EXPECT_CALL(mockIfp, if_input(PacketMatcher(origAck)))
+	    .Times(1);
+
+	// getmicrotime() is called once per accepted packet, so only once
+	// call is expected.
+	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+
+	// Begin the testcase.
+	struct lro_ctrl lc;
+	tcp_lro_init(&lc);
+	lc.ifp = mockIfp.GetIfp();
+
+	// Send the two frames in sequence to tcp_lro_rx().  Test the return
+	// value from each call.
+	int ret = tcp_lro_rx(&lc, origAck.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	// tcp_lro_rx() will detect the dup ACK here
+	struct mbuf *m2 = dupAck.Generate();
+	ret = tcp_lro_rx(&lc, m2, 0);
+	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+
+	// tcp_lro_rx() does not consume the mbuf when it returns non-zero, so
+	// have to manually free it here.
+	m_freem(m2);
 }
 
