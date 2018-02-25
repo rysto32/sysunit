@@ -205,6 +205,21 @@ namespace PktGen
 	{
 		return ntohl(x);
 	}
+
+	inline uint8_t hton(uint8_t x)
+	{
+		return x;
+	}
+
+	inline uint16_t hton(uint16_t x)
+	{
+		return htons(x);
+	}
+
+	inline uint32_t hton(uint32_t x)
+	{
+		return htonl(x);
+	}
 }
 
 #endif
