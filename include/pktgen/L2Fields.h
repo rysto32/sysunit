@@ -26,20 +26,27 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_LAYER_H
-#define PKTGEN_LAYER_H
+#ifndef PKTGEN_L2_FIELDS_H
+#define PKTGEN_L2_FIELDS_H
+
+#include "pktgen/EtherAddr.h"
 
 namespace PktGen
 {
-	enum class Layer {
-		L2,
-		L3,
-		L4,
-		PAYLOAD
-	};
-}
+	auto inline dstMac(const EtherAddr & a)
+	{
+		return [a](auto & h) { h.SetDstAddr(a); };
+	}
 
-const char * LayerStr(PktGen::Layer);
-void PrintIndent(int, const char *, ...);
+	auto inline srcMac(const EtherAddr & a)
+	{
+		return [a](auto & h) { h.SetSrcAddr(a); };
+	}
+
+	auto inline ethertype(uint16_t t)
+	{
+		return [t](auto & h) { h.SetEthertype(t); };
+	}
+}
 
 #endif

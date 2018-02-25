@@ -26,40 +26,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_IPV4_EXPECTATION_H
-#define PKTGEN_IPV4_EXPECTATION_H
-
-#include "fake/mbuf.h"
-
-extern "C" {
-#include <kern_include/sys/types.h>
-#include <kern_include/netinet/in.h>
-#include <kern_include/netinet/ip.h>
-}
+#ifndef PKTGEN_IPV4_MATCHER_H
+#define PKTGEN_IPV4_MATCHER_H
 
 #include <gmock/gmock-matchers.h>
 
+struct mbuf;
+
 namespace PktGen
 {
-	class Ipv4Flow;
+	class Ipv4Template;
 
 	class Ipv4Matcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
+		const Ipv4Template & header;
 		size_t headerOffset;
-		uint8_t header_len;
-		uint8_t tos;
-		uint16_t len;
-		uint16_t id;
-		uint16_t off;
-		uint8_t ttl;
-		uint8_t proto;
-		uint16_t sum;
-		struct in_addr src;
-		struct in_addr dst;
 
 	public:
-		Ipv4Matcher(const Ipv4Flow & flow, uint8_t proto, uint16_t ip_len, size_t offset);
+		Ipv4Matcher(const Ipv4Template & header, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -67,9 +52,9 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	inline testing::Matcher<mbuf*> Ipv4Header(const Ipv4Flow & flow, uint8_t proto, uint16_t ip_len, size_t offset)
+	auto inline PacketMatcher(const Ipv4Template & t, size_t off)
 	{
-		return testing::MakeMatcher(new Ipv4Matcher(flow, proto, ip_len, offset));
+		return Ipv4Matcher(t, off);
 	}
 }
 

@@ -26,20 +26,47 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_LAYER_H
-#define PKTGEN_LAYER_H
+#ifndef PKTGEN_L4_FIELDS_H
+#define PKTGEN_L4_FIELDS_H
 
 namespace PktGen
 {
-	enum class Layer {
-		L2,
-		L3,
-		L4,
-		PAYLOAD
-	};
-}
+	auto inline srcPort(uint16_t x)
+	{
+		return [x](auto & h) { h.SetSrcPort(x); };
+	}
 
-const char * LayerStr(PktGen::Layer);
-void PrintIndent(int, const char *, ...);
+	auto inline dstPort(uint16_t x)
+	{
+		return [x](auto & h) { h.SetDstPort(x); };
+	}
+
+	auto inline seq(uint32_t x)
+	{
+		return [x](auto & h) { h.SetSeq(x); };
+	}
+
+	auto inline ack(uint32_t x)
+	{
+		return [x](auto & h) { h.SetAck(x); };
+	}
+
+	auto inline flags(uint8_t x)
+	{
+		return [x](auto & h) { h.SetFlags(x); };
+	}
+
+	auto inline window(uint16_t x)
+	{
+		return [x](auto & h) { h.SetWindow(x); };
+	}
+
+	// Note: checksum() has a compatible definition in TcpHeader.h
+
+	auto inline urp(uint16_t x)
+	{
+		return [x](auto & h) { h.SetUrgentPointer(x); };
+	}
+}
 
 #endif

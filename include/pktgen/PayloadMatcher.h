@@ -29,27 +29,26 @@
 #ifndef PKTGEN_PAYLOAD_EXPECTATION_H
 #define PKTGEN_PAYLOAD_EXPECTATION_H
 
-#include "fake/mbuf.h"
 #include <gmock/gmock-matchers.h>
+
+struct mbuf;
 
 namespace PktGen
 {
+	class PayloadTemplate;
+
 	class PayloadMatcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		const char *pattern;
-		size_t len;
+		const PayloadTemplate & payload;
 		size_t headerOffset;
 
-		bool TestNullPattern(mbuf *m, size_t off, size_t mbufIndex, size_t payloadIndex,
-		    size_t & remaining, testing::MatchResultListener *) const;
-
-		bool TestPattern(mbuf *m, size_t hdroff, size_t mbufIndex, size_t payloadIndex,
-		    size_t & patOff, size_t & remaining, testing::MatchResultListener *) const;
+		bool TestPattern(mbuf *m, size_t hdroff, size_t mbufNumber,
+		    size_t & payloadIndex, const std::vector<uint8_t> & payloadBytes,
+		    testing::MatchResultListener* listener) const;
 
 	public:
-		PayloadMatcher(const char * pattern, size_t len, size_t offset);
-		PayloadMatcher(size_t len, size_t offset);
+		PayloadMatcher(const PayloadTemplate & p, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -57,10 +56,9 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	template <typename... Args>
-	inline testing::Matcher<mbuf*> Payload(Args... args)
+	auto inline PacketMatcher(const PayloadTemplate & pkt, size_t off)
 	{
-		return testing::MakeMatcher(new PayloadMatcher(args...));
+		return PayloadMatcher(pkt, off);
 	}
 }
 

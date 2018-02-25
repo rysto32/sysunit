@@ -28,7 +28,10 @@
 
 #define _KERNEL_UT 1
 
+#include "fake/mbuf.h"
+
 #include "pktgen/TcpMatcher.h"
+#include "pktgen/TcpHeader.h"
 
 #include "pktgen/TcpFlow.h"
 
@@ -38,25 +41,16 @@
 
 namespace PktGen
 {
-	TcpMatcher::TcpMatcher(const TcpFlow &flow, size_t offset)
-	  : headerOffset(offset),
-	    th_sport(flow.GetSrcPort()),
-	    th_dport(flow.GetDstPort()),
-	    th_seq(flow.GetLastSeq()),
-	    th_ack(flow.GetLastAck()),
-	    th_off(flow.GetHeaderLen() / sizeof(uint32_t)),
-	    th_x2(0),
-	    th_flags(flow.GetDefaultFlags()),
-	    th_win(flow.GetWindow()),
-	    th_sum(0),
-	    th_urp(0)
+	TcpMatcher::TcpMatcher(const TcpTemplate &header, size_t offset)
+	  : header(header),
+	    headerOffset(offset)
 	{
 	}
 
-	#define	CheckField(th, field) do { \
-		if (ntoh((th)->field) != (field)) { \
-			*listener << #field << " field is " << ntoh((th)->field) \
-			    << " (expected " << (field) << ")"; \
+	#define	CheckField(th, field, expect) do { \
+		if (ntoh((th)->field) != (expect)) { \
+			*listener << "TCP: " << #field << " field is " << ntoh((th)->field) \
+			    << " (expected " << (expect) << ")"; \
 			return false; \
 		} \
 	} while (0)
@@ -66,26 +60,48 @@ namespace PktGen
 	{
 		auto * tcp = GetMbufHeader<tcphdr>(m, headerOffset);
 
-		CheckField(tcp, th_sport);
-		CheckField(tcp, th_dport);
-		CheckField(tcp, th_seq);
-		CheckField(tcp, th_ack);
-		CheckField(tcp, th_off);
-		CheckField(tcp, th_x2);
-		CheckField(tcp, th_flags);
-		CheckField(tcp, th_win);
+		CheckField(tcp, th_sport, header.GetSrcPort());
+		CheckField(tcp, th_dport, header.GetDstPort());
+		CheckField(tcp, th_seq, header.GetSeq());
+		CheckField(tcp, th_ack, header.GetAck());
+		CheckField(tcp, th_off, header.GetOff());
+		CheckField(tcp, th_x2, header.GetX2());
+		CheckField(tcp, th_flags, header.GetFlags());
+		CheckField(tcp, th_win, header.GetWindow());
 
 		// XXX tcp_lro always updates this...
 		if (0)
-			CheckField(tcp, th_sum);
+			CheckField(tcp, th_sum, header.GetChecksum());
 
-		CheckField(tcp, th_urp);
+		CheckField(tcp, th_urp, header.GetUrgentPointer());
+
+		uint32_t expectedFlag = 0;
+		if (header.GetChecksumVerified())
+			expectedFlag = CSUM_L4_CALC;
+
+		auto actualFlag = m->m_pkthdr.csum_flags & CSUM_L4_CALC;
+		if (actualFlag != expectedFlag) {
+			*listener << "TCP: csum calc flag is " << actualFlag
+			    << " (expected " << expectedFlag << ")";
+			return false;
+		}
+
+		expectedFlag = 0;
+		if (header.GetChecksumPassed())
+			expectedFlag = CSUM_L4_VALID;
+
+		actualFlag = m->m_pkthdr.csum_flags & CSUM_L4_VALID;
+		if (actualFlag != expectedFlag) {
+			*listener << "TCP: csum valid flag is " << actualFlag
+			    << " (expected " << expectedFlag << ")";
+			return false;
+		}
 
 		return true;
 	}
 
 	void TcpMatcher::DescribeTo(::std::ostream* os) const
 	{
-		*os << "TCP header";
+		*os << "TCP";
 	}
 }

@@ -26,33 +26,25 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_TCP_EXPECTATION_H
-#define PKTGEN_TCP_EXPECTATION_H
+#ifndef PKTGEN_TCP_MATCHER_H
+#define PKTGEN_TCP_MATCHER_H
 
-#include "fake/mbuf.h"
 #include <gmock/gmock-matchers.h>
+
+struct mbuf;
 
 namespace PktGen
 {
-	class TcpFlow;
+	class TcpTemplate;
 
 	class TcpMatcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		size_t headerOffset;
-		uint16_t th_sport;
-		uint16_t th_dport;
-		uint32_t th_seq;
-		uint32_t th_ack;
-		uint8_t th_off;
-		uint8_t th_x2;
-		uint8_t th_flags;
-		uint16_t th_win;
-		uint16_t th_sum;
-		uint16_t th_urp;
+		const TcpTemplate & header;
+		const size_t headerOffset;
 
 	public:
-		TcpMatcher(const TcpFlow &, size_t offset);
+		TcpMatcher(const TcpTemplate &, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -60,9 +52,9 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	inline testing::Matcher<mbuf*> TcpHeader(const TcpFlow &flow, size_t offset)
+	auto inline PacketMatcher(const TcpTemplate & t, size_t off)
 	{
-		return testing::MakeMatcher(new TcpMatcher(flow, offset));
+		return TcpMatcher(t, off);
 	}
 }
 

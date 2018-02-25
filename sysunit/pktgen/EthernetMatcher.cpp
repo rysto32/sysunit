@@ -26,20 +26,54 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_LAYER_H
-#define PKTGEN_LAYER_H
+#include "fake/mbuf.h"
+
+#include "pktgen/EthernetMatcher.h"
+
+#include "pktgen/EthernetHeader.h"
+
+#include <netinet/in.h>
+
+using testing::MatchResultListener;
 
 namespace PktGen
 {
-	enum class Layer {
-		L2,
-		L3,
-		L4,
-		PAYLOAD
-	};
+	EthernetMatcher::EthernetMatcher(const EthernetTemplate & h, size_t off)
+	  : header(h),
+	    headerOffset(off)
+	{
+	}
+
+	bool EthernetMatcher::MatchAndExplain(mbuf* m,
+	    MatchResultListener* listener) const
+	{
+		auto * eh = GetMbufHeader<ether_header>(m, headerOffset);
+
+		EtherAddr pktDst(eh->ether_dhost);
+		if (header.GetDst() != pktDst) {
+			*listener << "Ethernet: dst mac is " << pktDst
+			    << " (expected " << header.GetDst() << ")";
+			return false;
+		}
+
+		EtherAddr pktSrc(eh->ether_shost);
+		if (header.GetSrc() != pktSrc) {
+			*listener << "Ethernet: src mac is " << pktSrc
+			    << " (expected " << header.GetSrc() << ")";
+			return false;
+		}
+
+		if (header.GetEthertype() != ntohs(eh->ether_type)) {
+			*listener << "Ethernet: ethertype is " << std::hex << ntohs(eh->ether_type)
+			    << " (expected " << header.GetEthertype() << ")";
+			return false;
+		}
+
+		return true;
+	}
+
+	void EthernetMatcher::DescribeTo(::std::ostream* os) const
+	{
+		*os << "Ethernet";
+	}
 }
-
-const char * LayerStr(PktGen::Layer);
-void PrintIndent(int, const char *, ...);
-
-#endif

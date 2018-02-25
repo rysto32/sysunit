@@ -26,9 +26,18 @@
  * SUCH DAMAGE.
  */
 
+#include "fake/mbuf.h"
+
 #include "pktgen/Ipv4Matcher.h"
+#include "pktgen/Ipv4Header.h"
 
 #include "pktgen/Ipv4Flow.h"
+
+extern "C" {
+#include "kern_include/sys/types.h"
+#include "kern_include/netinet/in.h"
+#include "kern_include/netinet/ip.h"
+}
 
 using testing::MatchResultListener;
 
@@ -37,36 +46,18 @@ bool operator!=(in_addr a, in_addr b)
 	return a.s_addr != b.s_addr;
 }
 
-std::ostream & operator<<(std::ostream & os, in_addr a)
-{
-	os << (a.s_addr & 0xff) << "."
-	   << ((a.s_addr >> 8) & 0xff) << "."
-	   << ((a.s_addr >> 16) & 0xff) << "."
-	   << ((a.s_addr >> 24) & 0xff);
-
-	return os;
-}
-
 namespace PktGen
 {
-	Ipv4Matcher::Ipv4Matcher(const Ipv4Flow & flow, uint8_t proto, uint16_t ip_len, size_t offset)
-	  : headerOffset(offset),
-	    header_len(flow.GetHeaderSize() / sizeof(uint32_t)),
-	    tos(flow.GetTos()),
-	    len(ip_len),
-	    id(flow.GetLastId()),
-	    off(0),
-	    ttl(flow.GetTtl()),
-	    proto(proto),
-	    sum(0),
-	    src(flow.GetSrc()),
-	    dst(flow.GetDst())
+	Ipv4Matcher::Ipv4Matcher(const Ipv4Template & h, size_t offset)
+	  : header(h),
+	    headerOffset(offset)
 	{
 	}
 
-	#define	CheckField(field, expect) do { \
-		if (ntoh(field) != (expect)) { \
-			*listener << "IPv4: " << #expect << " field is " << ntoh(field) << " (expected " << expect << ")";; \
+	#define	CheckField(hdr, field, expect) do { \
+		if (ntoh((hdr)->field) != (expect)) { \
+			*listener << "IPv4: " << #field << " field is " << ntoh((hdr)->field) \
+			    << " (expected " << expect << ")";; \
 			return false; \
 		} \
 	} while (0)
@@ -75,28 +66,52 @@ namespace PktGen
 	{
 		auto * ip = GetMbufHeader<struct ip>(m, headerOffset);
 
-		CheckField(ip->ip_hl, header_len);
-		CheckField(ip->ip_v, static_cast<uint8_t>(4));
-		CheckField(ip->ip_tos, tos);
-		CheckField(ip->ip_len, len);
-		CheckField(ip->ip_id, id);
-		CheckField(ip->ip_off, off);
-		CheckField(ip->ip_ttl, ttl);
-		CheckField(ip->ip_p, proto);
+		CheckField(ip, ip_hl, header.GetHeaderLen());
+		CheckField(ip, ip_v, 4);
+		CheckField(ip, ip_tos, header.GetTos());
+		CheckField(ip, ip_len, header.GetIpLen());
+		CheckField(ip, ip_id, header.GetId());
+		CheckField(ip, ip_off, header.GetOff());
+		CheckField(ip, ip_ttl, header.GetTtl());
+		CheckField(ip, ip_p, header.GetProto());
 
 		// XXX tcp_lro always updates this...
 		if (0)
-			CheckField(ip->ip_sum, sum);
+			CheckField(ip, ip_sum, header.GetChecksum());
 
 		// The IPs are stored in network byte order so
 		// there is no need to byte-swap them before comparing
-		if (ip->ip_src != src) {
-			*listener << "srcip field is " << ip->ip_src << " (expected " << src << ")";
+		if (header.GetSrc() != ip->ip_src) {
+			*listener << "IPv4: srcip field is " << ip->ip_src
+			    << " (expected " << header.GetSrc() << ")";
 			return false;
 		}
 
-		if (ip->ip_dst != dst) {
-			*listener << "dstip field is " << ip->ip_dst << " (expected " << dst << ")";
+		if (header.GetDst() != ip->ip_dst) {
+			*listener << "IPv4: dstip field is " << ip->ip_dst
+			    << " (expected " << header.GetDst() << ")";
+			return false;
+		}
+
+		uint32_t expectedFlag = 0;
+		if (header.GetChecksumVerified())
+			expectedFlag = CSUM_L3_CALC;
+
+		auto actualFlag = m->m_pkthdr.csum_flags & CSUM_L3_CALC;
+		if (actualFlag != expectedFlag) {
+			*listener << "IPv4: l3 csum calc flag is " << actualFlag
+			    << " (expected " << expectedFlag << ")";
+			return false;
+		}
+
+		expectedFlag = 0;
+		if (header.GetChecksumPassed())
+			expectedFlag = CSUM_L3_VALID;
+
+		actualFlag = m->m_pkthdr.csum_flags & CSUM_L3_VALID;
+		if (actualFlag != expectedFlag) {
+			*listener << "IPv4: l3 csum valid flag is " << actualFlag
+			    << " (expected " << expectedFlag << ")";
 			return false;
 		}
 
@@ -105,6 +120,6 @@ namespace PktGen
 
 	void Ipv4Matcher::DescribeTo(::std::ostream* os) const
 	{
-		*os << "IPv4 header";
+		*os << "IPv4";
 	}
 }

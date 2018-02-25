@@ -36,6 +36,15 @@ extern "C" {
 #include <kern_include/netinet/ip.h>
 }
 
+inline std::ostream & operator<<(std::ostream & os, struct in_addr a)
+{
+	os << (a.s_addr & 0xff) << "."
+	   << ((a.s_addr >> 8) & 0xff) << "."
+	   << ((a.s_addr >> 16) & 0xff) << "."
+	   << ((a.s_addr >> 24) & 0xff);
+
+	return os;
+}
 
 namespace PktGen
 {
@@ -47,6 +56,11 @@ namespace PktGen
 	public:
 		Ipv4Addr()
 		  : addr({.s_addr = 0})
+		{
+		}
+
+		Ipv4Addr(struct in_addr a)
+		  : addr(a)
 		{
 		}
 
@@ -64,7 +78,24 @@ namespace PktGen
 		{
 			return addr;
 		}
+
+		bool operator==(const Ipv4Addr & rhs) const
+		{
+			return addr.s_addr == rhs.addr.s_addr;
+		}
+
+		bool operator!=(const Ipv4Addr & rhs) const
+		{
+			return !(*this == rhs);
+		}
 	};
+
+	inline std::ostream & operator<<(std::ostream & os, const PktGen::Ipv4Addr & a)
+	{
+		os << a.GetAddr();
+
+		return os;
+	}
 }
 
 #endif

@@ -51,6 +51,7 @@ namespace PktGen
 		uint8_t tos;
 		uint16_t id;
 		uint16_t off;
+		uint32_t len;
 		uint8_t ttl;
 		uint8_t proto;
 		uint16_t checksum;
@@ -68,6 +69,7 @@ namespace PktGen
 		    tos(0),
 		    id(0),
 		    off(0),
+		    len(header_len),
 		    ttl(255),
 		    proto(0),
 		    checksum(0),
@@ -76,9 +78,24 @@ namespace PktGen
 		{
 		}
 
+		uint8_t GetHeaderLen() const
+		{
+			return header_len;
+		}
+
+		uint8_t GetTos() const
+		{
+			return tos;
+		}
+
 		void SetTos(uint8_t t)
 		{
 			tos = t;
+		}
+
+		uint16_t GetId() const
+		{
+			return id;
 		}
 
 		void SetId(uint16_t i)
@@ -86,9 +103,29 @@ namespace PktGen
 			id = i;
 		}
 
+		uint16_t GetOff() const
+		{
+			return off;
+		}
+
+		uint32_t GetIpLen() const
+		{
+			return len;
+		}
+
+		uint8_t GetTtl() const
+		{
+			return ttl;
+		}
+
 		void SetTtl(uint8_t t)
 		{
 			ttl = t;
+		}
+
+		uint8_t GetProto() const
+		{
+			return proto;
 		}
 
 		void SetProto(uint8_t p)
@@ -96,9 +133,19 @@ namespace PktGen
 			proto = p;
 		}
 
+		uint16_t GetChecksum() const
+		{
+			return checksum;
+		}
+
 		void SetChecksum(uint16_t sum)
 		{
 			checksum = sum;
+		}
+
+		const Ipv4Addr & GetSrc() const
+		{
+			return src;
 		}
 
 		void SetSrc(const Ipv4Addr & a)
@@ -106,14 +153,29 @@ namespace PktGen
 			src = a;
 		}
 
+		const Ipv4Addr & GetDst() const
+		{
+			return dst;
+		}
+
 		void SetDst(const Ipv4Addr & a)
 		{
 			dst = a;
 		}
 
+		bool GetChecksumVerified() const
+		{
+			return checksumVerified;
+		}
+
 		void SetChecksumVerified(bool v)
 		{
 			checksumVerified = v;
+		}
+
+		bool GetChecksumPassed() const
+		{
+			return checksumPassed;
 		}
 
 		void SetChecksumPassed(bool v)

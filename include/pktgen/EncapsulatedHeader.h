@@ -32,13 +32,17 @@
 #include "pktgen/Layer.h"
 #include "pktgen/Packet.h"
 
+#include <gmock/gmock-matchers.h>
+
+struct mbuf;
+
 namespace PktGen
 {
 	template <typename Lower, typename Upper>
 	class EncapsulatedHeader;
 
 	template <typename Lower, typename Upper>
-	EncapsulatedHeader<Lower, Upper> Encapsulate(const Lower & low, const Upper & up);
+	EncapsulatedHeader<Lower, Upper> MakeEncapsulation(const Lower & low, const Upper & up);
 
 	template <typename Lower, typename Upper>
 	class EncapsulatedHeader
@@ -50,7 +54,7 @@ namespace PktGen
 		typedef EncapsulatedHeader<Lower, Upper> SelfType;
 	public:
 		static const auto LAYER = Upper::LAYER;
-		typedef typename Lower::EncapFieldSetter EncapFieldSetter;
+		typedef typename Upper::EncapFieldSetter EncapFieldSetter;
 
 		EncapsulatedHeader(const Lower & low, const Upper & up)
 			: lower(low), upper(up)
@@ -58,21 +62,21 @@ namespace PktGen
 		}
 
 		template <typename... Fields>
-		SelfType With(Fields... f)
+		SelfType With(Fields... f) const
 		{
 			return SelfType(lower, upper.With(f...));
 		}
 
 		template <Layer layer, typename ... Fields>
 		typename std::enable_if<layer == LAYER, SelfType>::type
-		WithHeaders(Fields... f)
+		WithHeaders(Fields... f) const
 		{
 			return With(f...);
 		}
 
 		template <Layer layer, typename ... Fields>
 		typename std::enable_if<layer != LAYER, SelfType>::type
-		WithHeaders(Fields... f)
+		WithHeaders(Fields... f) const
 		{
 			auto newLower(lower.template WithHeaders<layer>(f...));
 
@@ -110,15 +114,21 @@ namespace PktGen
 		// rather than EncapsulatedHeader<LowestProtocol, EncapsulatedHeader<...>>
 		// The algorithm in WithHeaders() depends on this.
 		template <typename Deepest>
-		auto encapIn(Deepest origDeepest)
+		auto EncapIn(Deepest origDeepest) const
 		{
-			return Encapsulate(lower.encapIn(origDeepest), upper);
+			return MakeEncapsulation(lower.EncapIn(origDeepest), upper);
+		}
+
+		template <typename Upmost>
+		auto  Encapsulate(Upmost upmost) const
+		{
+			return MakeEncapsulation(*this, upmost);
 		}
 
 		template <typename Deepest>
 		friend auto operator|(SelfType lhs, Deepest rhs)
 		{
-			return lhs.encapIn(rhs);
+			return lhs.EncapIn(rhs);
 		}
 
 		void print(int depth)
@@ -128,12 +138,72 @@ namespace PktGen
 			lower.print(depth + 1);
 			PrintIndent(depth, "}");
 		}
+
+		const auto & GetLower() const
+		{
+			return lower;
+		}
+
+		const auto & GetUpper() const
+		{
+			return upper;
+		}
 	};
 
 	template <typename Lower, typename Upper>
-	EncapsulatedHeader<Lower, Upper> Encapsulate(const Lower & low, const Upper & up)
+	EncapsulatedHeader<Lower, Upper> MakeEncapsulation(const Lower & low, const Upper & up)
 	{
-		return EncapsulatedHeader<Lower, Upper>(low, up);
+		typename Upper::EncapFieldSetter setter;
+		return EncapsulatedHeader<Lower, Upper>(low.With(setter), up);
+	}
+
+	template <typename LowerMatcher, typename UpperMatcher>
+	class EncapMatcher : public testing::MatcherInterface<mbuf*>
+	{
+		LowerMatcher lowMatch;
+		UpperMatcher upperMatch;
+
+	public:
+		EncapMatcher(LowerMatcher l, UpperMatcher u)
+		: lowMatch(l), upperMatch(u)
+		{}
+
+		virtual bool MatchAndExplain(mbuf* m,
+                    testing::MatchResultListener* listener) const override
+		{
+			bool matched = lowMatch.MatchAndExplain(m, listener);
+			if (!matched)
+				return false;
+
+			return upperMatch.MatchAndExplain(m, listener);
+		}
+
+		virtual void DescribeTo(::std::ostream* os) const override
+		{
+			lowMatch.DescribeTo(os);
+			*os << '/';
+			upperMatch.DescribeTo(os);
+		}
+	};
+
+	template <typename Lower, typename Upper>
+	auto PacketMatcher(const EncapsulatedHeader<Lower, Upper> & pktTemplate, size_t hdrOff)
+	{
+		return EncapMatcher(PacketMatcher(pktTemplate.GetLower(), hdrOff),
+				PacketMatcher(pktTemplate.GetUpper(), hdrOff + pktTemplate.GetLower().GetLen()));
+	}
+
+	template <typename Lower, typename Upper>
+	auto MakePacketMatcher(const EncapsulatedHeader<Lower, Upper> & header)
+	{
+		return new EncapMatcher(PacketMatcher(header.GetLower(), 0),
+				PacketMatcher(header.GetUpper(), 0 + header.GetLower().GetLen()));
+	}
+
+	template <typename Header>
+	auto PacketMatcher(const Header & h)
+	{
+		return testing::MakeMatcher(MakePacketMatcher(h));
 	}
 }
 

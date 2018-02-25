@@ -26,76 +26,49 @@
  * SUCH DAMAGE.
  */
 
-#ifndef ETHERNET_HEADER_H
-#define ETHERNET_HEADER_H
+#ifndef PKTGEN_PACKET_PAYLOAD_TEMPLATE_H
+#define PKTGEN_PACKET_PAYLOAD_TEMPLATE_H
 
 #include "fake/mbuf.h"
 
 #include "pktgen/EncapsulatableHeader.h"
-#include "pktgen/EtherAddr.h"
 #include "pktgen/Layer.h"
 
-namespace PktGen {
+#include <stdint.h>
+#include <vector>
 
-	class EthernetTemplate
+namespace PktGen
+{
+	class PayloadTemplate
 	{
+	public:
+		typedef std::vector<uint8_t> PayloadVector;
+
 	private:
-		EtherAddr dst;
-		EtherAddr src;
-		uint16_t ethertype;
+		PayloadVector payload;
 
 	public:
-		static const auto LAYER = Layer::L2;
+		PayloadTemplate() = default;
 
-		EthernetTemplate()
-		  : ethertype(0)
-		{
-		}
+		static const auto LAYER = Layer::PAYLOAD;
 
-		const EtherAddr & GetDst() const
+		void SetPayload(const PayloadVector & p)
 		{
-			return dst;
-		}
-
-		const EtherAddr & GetSrc() const
-		{
-			return src;
-		}
-
-		uint16_t GetEthertype() const
-		{
-			return ethertype;
-		}
-
-		void SetSrcAddr(const EtherAddr & a)
-		{
-			src = a;
-		}
-
-		void SetDstAddr(const EtherAddr & a)
-		{
-			dst = a;
-		}
-
-		void SetEthertype(uint16_t t)
-		{
-			ethertype = t;
+			payload = p;
 		}
 
 		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
 		{
-			auto * eh = GetMbufHeader<ether_header>(m, offset);
+			auto * pl = GetMbufHeader<uint8_t>(m, offset);
 
-			memcpy(eh->ether_dhost, dst.GetAddr(), ETHER_ADDR_LEN);
-			memcpy(eh->ether_shost, src.GetAddr(), ETHER_ADDR_LEN);
-			eh->ether_type = ntohs(ethertype);
+			memcpy(pl, &payload[0], GetLen());
 
 			offset += GetLen();
 		}
 
 		size_t GetLen() const
 		{
-			return sizeof(struct ether_header);
+			return payload.size();
 		}
 
 		// This is to appease EncapsulatableHeader
@@ -107,32 +80,59 @@ namespace PktGen {
 			}
 		};
 
+		const PayloadVector & GetPayload() const
+		{
+			return payload;
+		}
+
 		void print(int depth)
 		{
-			PrintIndent(depth, "Ether : {");
-			PrintIndent(depth + 1, "etype : %#x", ethertype);
+			PrintIndent(depth, "Payload = {");
+			PrintIndent(depth + 1, "len = %zd", GetLen());
 			PrintIndent(depth, "}");
 		}
 	};
 
-	auto EthernetHeader()
+	auto inline PacketPayload()
 	{
-		return EncapsulatableHeader<EthernetTemplate>();
+		return EncapsulatableHeader<PayloadTemplate>();
 	}
 
-	auto dstMac(EtherAddr a)
+	auto inline payload(const PayloadTemplate::PayloadVector & p)
 	{
-		return [a](auto & h) { h.SetDstAddr(a); };
+		return [p] (auto & h) { h.SetPayload(p); };
 	}
 
-	auto srcMac(EtherAddr a)
+	auto inline payload(PayloadTemplate::PayloadVector && p)
 	{
-		return [a](auto & h) { h.SetSrcAddr(a); };
+		return [p = std::move(p)] (auto & h) { h.SetPayload(p); };
 	}
 
-	auto ethertype(uint16_t t)
+	auto inline payload(uint8_t byte, size_t count = 1)
 	{
-		return [t](auto & h) { h.SetEthertype(t); };
+		PayloadTemplate::PayloadVector p(count, byte);
+		return [p = std::move(p)] (auto & h) { h.SetPayload(p); };
+	}
+
+	auto inline payload(const std::string & str, size_t count)
+	{
+		PayloadTemplate::PayloadVector p;
+
+		while (count > 0) {
+			for (auto ch : str) {
+				p.push_back(ch);
+				count--;
+				if (count == 0)
+					break;
+			}
+		}
+
+		return [p = std::move(p)] (auto & h) { h.SetPayload(p); };
+	}
+
+	auto inline payload(const std::string & p)
+	{
+		return payload(p, p.size());
 	}
 }
 

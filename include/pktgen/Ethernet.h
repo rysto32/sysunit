@@ -26,53 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/EtherMatcher.h"
+#ifndef PKTGEN_ETHERNET_H
+#define PKTGEN_ETHERNET_H
 
-#include "pktgen/EtherFlow.h"
+#include "pktgen/EthernetHeader.h"
+#include "pktgen/EthernetMatcher.h"
 
-#include <netinet/in.h>
-
-using testing::MatchResultListener;
-
-namespace PktGen
-{
-	EtherMatcher::EtherMatcher(const EtherFlow& flow, uint16_t etype,
-	    size_t offset)
-	  : dst(flow.GetDst()),
-	    src(flow.GetSrc()),
-	    ethertype(etype),
-	    headerOffset(offset)
-	{
-	}
-
-	bool EtherMatcher::MatchAndExplain(mbuf* m,
-	    MatchResultListener* listener) const
-	{
-		auto * eh = GetMbufHeader<ether_header>(m, headerOffset);
-
-		EtherAddr pktDst(eh->ether_dhost);
-		if (dst != pktDst) {
-			*listener << "dst mac is " << pktDst << " (expected " << dst << ")";
-			return false;
-		}
-
-		EtherAddr pktSrc(eh->ether_shost);
-		if (src != pktSrc) {
-			*listener << "src mac is " << pktSrc << " (expected " << src << ")";
-			return false;
-		}
-
-		if (ethertype != ntohs(eh->ether_type)) {
-			*listener << "ethertype is " << ntohs(eh->ether_type)
-			    << " (expected " << ethertype << ")";
-			return false;
-		}
-
-		return true;
-	}
-
-	void EtherMatcher::DescribeTo(::std::ostream* os) const
-	{
-		*os << "Ethernet header";
-	}
-}
+#endif

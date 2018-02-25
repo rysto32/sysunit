@@ -26,20 +26,10 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_LAYER_H
-#define PKTGEN_LAYER_H
+#ifndef PKTGEN_IPV4_H
+#define PKTGEN_IPV4_H
 
-namespace PktGen
-{
-	enum class Layer {
-		L2,
-		L3,
-		L4,
-		PAYLOAD
-	};
-}
-
-const char * LayerStr(PktGen::Layer);
-void PrintIndent(int, const char *, ...);
+#include "pktgen/Ipv4Header.h"
+#include "pktgen/Ipv4Matcher.h"
 
 #endif

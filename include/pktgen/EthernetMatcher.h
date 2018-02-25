@@ -29,25 +29,22 @@
 #ifndef PKTGEN_ETHER_MATCHER_H
 #define PKTGEN_ETHER_MATCHER_H
 
-#include "fake/mbuf.h"
-
-#include "pktgen/EtherAddr.h"
 #include <gmock/gmock-matchers.h>
+
+struct mbuf;
 
 namespace PktGen
 {
-	class EtherFlow;
+	class EthernetTemplate;
 
-	class EtherMatcher : public testing::MatcherInterface<mbuf*>
+	class EthernetMatcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		EtherAddr dst;
-		EtherAddr src;
-		uint16_t ethertype;
-		size_t headerOffset;
+		const EthernetTemplate & header;
+		const size_t headerOffset;
 
 	public:
-		EtherMatcher(const EtherFlow & flow, uint16_t etype, size_t offset);
+		EthernetMatcher(const EthernetTemplate &, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -55,9 +52,9 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	inline testing::Matcher<mbuf*> EtherHeader(const EtherFlow & flow, uint16_t etype, size_t offset)
+	auto inline PacketMatcher(const EthernetTemplate & t, size_t off)
 	{
-		return testing::MakeMatcher(new EtherMatcher(flow, etype, offset));
+		return EthernetMatcher(t, off);
 	}
 }
 

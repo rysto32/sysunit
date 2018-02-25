@@ -28,7 +28,10 @@
 
 #define _KERNEL_UT 1
 
+#include "fake/mbuf.h"
+
 #include "pktgen/PayloadMatcher.h"
+#include "pktgen/PacketPayloadTemplate.h"
 
 #include "pktgen/Packet.h"
 
@@ -38,126 +41,71 @@ using testing::MatchResultListener;
 
 namespace PktGen
 {
-	PayloadMatcher::PayloadMatcher(const char * pattern, size_t len, size_t offset)
-	  : pattern(pattern),
-	    len(len),
-	    headerOffset(offset)
+	PayloadMatcher::PayloadMatcher(const PayloadTemplate & p, size_t off)
+	  : payload(p),
+	    headerOffset(off)
 	{
 	}
 
-	PayloadMatcher::PayloadMatcher(size_t len, size_t offset)
-	  : pattern(nullptr),
-	    len(len),
-	    headerOffset(offset)
-	{
-	}
-
-	bool PayloadMatcher::TestNullPattern(mbuf* m, size_t off, size_t mbufIndex, size_t payloadIndex,
-	    size_t & remaining, MatchResultListener* listener) const
-	{
-		auto * ptr = GetMbufHeader<uint8_t>(m, off);
-		size_t i;
-
-		for (i = 0; i < m->m_len && i < remaining; ++i) {
-			if (ptr[i] != 0) {
-				*listener << "payload at mbuf " << mbufIndex <<
-				    " index " << off + i << " (payload index " << payloadIndex + i <<
-				    ") is 0x" << std::hex << (u_int)ptr[i] << " (expected 0x" << 0 << ")";
-				return false;
-			}
-		}
-
-		remaining -= i;
-		return true;
-	}
-
-	bool PayloadMatcher::TestPattern(mbuf *m, size_t hdroff, size_t mbufIndex, size_t payloadIndex,
-	    size_t & patOff, size_t & remaining, MatchResultListener* listener) const
+	bool PayloadMatcher::TestPattern(mbuf *m, size_t hdroff, size_t mbufNumber,
+	    size_t & payloadIndex, const std::vector<uint8_t> & payloadBytes,
+	    MatchResultListener* listener) const
 	{
 		auto * ptr = GetMbufHeader<uint8_t>(m, 0);
-		auto patlen = strlen(pattern);
-		size_t left, last_offset;
 
-		left = std::min(static_cast<size_t>(m->m_len - hdroff), remaining);
-		remaining -= left;
+		size_t mbIndex = hdroff;
+		size_t payIndex = payloadIndex;
 
-		last_offset = patOff;
-		while (left > 0) {
-			auto iterlen = patlen - last_offset;
-			auto cmplen = std::min(left, iterlen);
-
-			size_t i = 0;
-			for (i = 0; i < cmplen; ++i) {
-				if (ptr[hdroff + i] != pattern[last_offset + i]) {
-					*listener << "payload at mbuf " << mbufIndex <<
-					    " index " << hdroff + i <<
-					    " (payload index " << payloadIndex + i << ")" <<
-					     " is 0x" << std::hex << (u_int)ptr[hdroff + i] <<
-					     " (expected 0x" << (u_int)pattern[last_offset + i] << ")";
-					return false;
-				}
+		while (mbIndex < m->m_len && payIndex < payloadBytes.size()) {
+			if (payloadBytes.at(payIndex) != ptr[mbIndex]) {
+				*listener << "Payload incorrect at mbuf " <<
+				    mbufNumber << " index " << mbIndex <<
+				    " (payload index " << payIndex << ")" <<
+				    " value " << std::hex << int(ptr[mbIndex])
+				    << " (expected " << int(payloadBytes.at(payIndex)) << ")";
+				return false;
 			}
-			ptr += cmplen;
-			left -= cmplen;
-			last_offset = cmplen;
+
+			++mbIndex;
+			++payIndex;
 		}
-		patOff = last_offset;
+
+		payloadIndex = payIndex;
 		return true;
 	}
 
 	bool PayloadMatcher::MatchAndExplain(mbuf* m, MatchResultListener* listener) const
 	{
-		if (m->m_pkthdr.len < len) {
-			*listener << "packet len is " << m->m_pkthdr.len;
+		const auto & payloadBytes = payload.GetPayload();
+		if (m->m_pkthdr.len < payloadBytes.size()) {
+			*listener << "packet len is " << m->m_pkthdr.len
+			    << " (expected " << payloadBytes.size() << ")";
 			return false;
 		}
 
-		if (pattern == nullptr) {
-			auto remaining = len;
-			auto offset = headerOffset;
-			size_t mbufIndex = 0;
-			size_t payloadIndex = 0;
+		auto hdroff = headerOffset;
+		size_t mbufNumber = 0;
+		size_t payloadIndex = 0;
 
-			while (m != nullptr && remaining > 0) {
-				bool matched = TestNullPattern(m, offset, mbufIndex, payloadIndex,
-				    remaining, listener);
-				if (!matched)
-					return false;
+		while (m != nullptr && payloadIndex < payloadBytes.size()) {
+			bool matched = TestPattern(m, hdroff, mbufNumber, payloadIndex,
+				payloadBytes, listener);
+			if (!matched)
+				return false;
 
-				mbufIndex++;
-				payloadIndex += m->m_len - offset;
-				offset = 0;
-				m = m->m_next;
-			}
-
-// 			ASSERT_EQ(remaining, 0);
-		} else {
-			auto remaining = len;
-			size_t patOff = 0;
-			auto hdroff = headerOffset;
-			size_t mbufIndex = 0;
-			size_t payloadIndex = 0;
-
-			while (m != nullptr && remaining > 0) {
-				bool matched = TestPattern(m, hdroff, mbufIndex, payloadIndex,
-				    patOff, remaining, listener);
-				if (!matched)
-					return false;
-
-				mbufIndex++;
-				payloadIndex += m->m_len - hdroff;
-				hdroff = 0;
-				m = m->m_next;
-			}
-
-// 			ASSERT_EQ(remaining, 0);
+			mbufNumber++;
+			payloadIndex += m->m_len - hdroff;
+			hdroff = 0;
+			m = m->m_next;
 		}
+
+// 			ASSERT_EQ(remaining, 0);
 
 		return true;
 	}
 
 	void PayloadMatcher::DescribeTo(::std::ostream* os) const
 	{
-		*os << "payload";
+		*os << "Payload";
 	}
 }

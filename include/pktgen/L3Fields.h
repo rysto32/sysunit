@@ -26,20 +26,57 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_LAYER_H
-#define PKTGEN_LAYER_H
+#ifndef PKTGEN_L3_FIELDS_H
+#define PKTGEN_L3_FIELDS_H
+
+#include "pktgen/Ipv4Addr.h"
 
 namespace PktGen
 {
-	enum class Layer {
-		L2,
-		L3,
-		L4,
-		PAYLOAD
-	};
-}
+	auto inline tos(uint8_t x)
+	{
+		return [x](auto & h) { h.SetTos(x); };
+	}
 
-const char * LayerStr(PktGen::Layer);
-void PrintIndent(int, const char *, ...);
+	auto inline id(uint16_t x)
+	{
+		return [x](auto & h) { h.SetId(x); };
+	}
+
+	auto inline ttl(uint8_t x)
+	{
+		return [x](auto & h) { h.SetTtl(x); };
+	}
+
+	auto inline proto(uint8_t x)
+	{
+		return [x](auto & h) { h.SetProto(x); };
+	}
+
+	auto inline checksum(uint16_t x)
+	{
+		return [x](auto & h) { h.SetChecksum(x); };
+	}
+
+	auto inline srcIp(const Ipv4Addr & x)
+	{
+		return [x](auto & h) { h.SetSrc(x); };
+	}
+
+	auto inline dstIp(const Ipv4Addr & x)
+	{
+		return [x](auto & h) { h.SetDst(x); };
+	}
+
+	auto inline checksumVerified(bool verified = true)
+	{
+		return [verified] (auto & h) { h.SetChecksumVerified(verified); };
+	}
+
+	auto inline checksumPassed(bool valid = true)
+	{
+		return [valid] (auto & h) { h.SetChecksumPassed(valid); };
+	}
+}
 
 #endif

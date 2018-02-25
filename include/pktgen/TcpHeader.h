@@ -78,9 +78,19 @@ namespace PktGen
 		{
 		}
 
+		uint16_t GetSrcPort() const
+		{
+			return th_sport;
+		}
+
 		void SetSrcPort(uint16_t x)
 		{
 			th_sport = x;
+		}
+
+		uint16_t GetDstPort() const
+		{
+			return th_dport;
 		}
 
 		void SetDstPort(uint16_t x)
@@ -88,9 +98,19 @@ namespace PktGen
 			th_dport = x;
 		}
 
+		uint32_t GetSeq() const
+		{
+			return th_seq;
+		}
+
 		void SetSeq(uint32_t x)
 		{
 			th_seq = x;
+		}
+
+		uint32_t GetAck() const
+		{
+			return th_ack;
 		}
 
 		void SetAck(uint32_t x)
@@ -98,9 +118,29 @@ namespace PktGen
 			th_ack = x;
 		}
 
+		uint8_t GetOff() const
+		{
+			return th_off;
+		}
+
+		uint8_t GetX2() const
+		{
+			return th_x2;
+		}
+
+		uint8_t GetFlags() const
+		{
+			return th_flags;
+		}
+
 		void SetFlags(uint8_t x)
 		{
 			th_flags = x;
+		}
+
+		uint16_t GetWindow() const
+		{
+			return th_win;
 		}
 
 		void SetWindow(uint16_t x)
@@ -108,9 +148,19 @@ namespace PktGen
 			th_win = x;
 		}
 
+		uint16_t GetChecksum() const
+		{
+			return th_sum;
+		}
+
 		void SetChecksum(uint16_t x)
 		{
 			th_sum = x;
+		}
+
+		uint16_t GetUrgentPointer() const
+		{
+			return th_urp;
 		}
 
 		void SetUrgentPointer(uint16_t x)
@@ -118,9 +168,19 @@ namespace PktGen
 			th_urp = x;
 		}
 
+		bool GetChecksumVerified() const
+		{
+			return checksumVerified;
+		}
+
 		void SetChecksumVerified(bool v)
 		{
 			checksumVerified = v;
+		}
+
+		bool GetChecksumPassed() const
+		{
+			return checksumPassed;
 		}
 
 		void SetChecksumPassed(bool v)
