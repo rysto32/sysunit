@@ -49,7 +49,7 @@ extern "C" {
 #include "sysunit/TestSuite.h"
 
 #include "mock/ifnet.h"
-#include "mock/timeval.h"
+#include "mock/time.h"
 
 using namespace PktGen;
 using namespace testing;

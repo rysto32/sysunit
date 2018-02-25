@@ -1,4 +1,4 @@
 
 SUBDIRS := \
 	ifnet \
-	timeval \
+	time \

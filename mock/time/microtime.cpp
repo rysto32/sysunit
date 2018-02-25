@@ -5,11 +5,11 @@ extern "C" {
 #include <kern_include/sys/time.h>
 }
 
-#include "mock/timeval.h"
+#include "mock/time.h"
 
 extern "C" void
 getmicrotime(struct timeval *tvp)
 {
-	MockTimeval::MockObj().getmicrotime(tvp);
+	MockTime::MockObj().getmicrotime(tvp);
 }
 
