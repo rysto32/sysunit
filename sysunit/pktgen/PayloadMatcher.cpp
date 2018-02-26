@@ -47,13 +47,13 @@ namespace PktGen
 	{
 	}
 
-	bool PayloadMatcher::TestPattern(mbuf *m, size_t hdroff, size_t mbufNumber,
+	bool PayloadMatcher::TestPattern(mbuf *m, int hdroff, size_t mbufNumber,
 	    size_t & payloadIndex, const std::vector<uint8_t> & payloadBytes,
 	    MatchResultListener* listener) const
 	{
 		auto * ptr = GetMbufHeader<uint8_t>(m, 0);
 
-		size_t mbIndex = hdroff;
+		int mbIndex = hdroff;
 		size_t payIndex = payloadIndex;
 
 		while (mbIndex < m->m_len && payIndex < payloadBytes.size()) {
@@ -83,7 +83,7 @@ namespace PktGen
 			return false;
 		}
 
-		auto hdroff = headerOffset;
+		int hdroff = headerOffset;
 		size_t mbufNumber = 0;
 		size_t payloadIndex = 0;
 

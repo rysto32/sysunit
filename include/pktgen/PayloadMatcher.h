@@ -43,7 +43,7 @@ namespace PktGen
 		const PayloadTemplate & payload;
 		size_t headerOffset;
 
-		bool TestPattern(mbuf *m, size_t hdroff, size_t mbufNumber,
+		bool TestPattern(mbuf *m, int hdroff, size_t mbufNumber,
 		    size_t & payloadIndex, const std::vector<uint8_t> & payloadBytes,
 		    testing::MatchResultListener* listener) const;
 
