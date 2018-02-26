@@ -415,13 +415,18 @@ TEST_F(TcpLroTestSuite, TestIncrPureAck)
 	    .WithHeaderFields<Layer::L4>(ack(965), flags(TH_ACK))
 	    .WithHeaderFields<Layer::PAYLOAD>(payload("abcd", 100));
 
-	// Generate a dup ACK.  This should be a replica of the original
-	// ACK but with the IP id incremented.
-	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::PAYLOAD>(payload()).WithHeaderFields<Layer::L4>(incrAck(2889));
+	// Generate a pure ACK with a larger th_ack field
+	auto pkt2 = pkt1.Next()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload())
+	    .WithHeaderFields<Layer::L4>(incrAck(2889));
 
-	auto expected = pkt1.WithHeaderFields<Layer::L4>(incrAck(2889));
+	// The merged packet will be identical to the original data packet
+	// but will have the larger th_ack field from the pure ACK.
+	auto expected = pkt1
+	    .WithHeaderFields<Layer::L4>(incrAck(2889));
+
+
 	StrictMock<MockIfnet> mockIfp("mock", 0);
-
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
@@ -438,7 +443,6 @@ TEST_F(TcpLroTestSuite, TestIncrPureAck)
 	int ret = tcp_lro_rx(&lc, pkt1.Generate(), 0);
 	ASSERT_EQ(ret, 0);
 
-	// tcp_lro_rx() will detect the dup ACK here
 	ret = tcp_lro_rx(&lc, pkt2.Generate(), 0);
 	ASSERT_EQ(ret, 0);
 
