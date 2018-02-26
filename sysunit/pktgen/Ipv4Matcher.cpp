@@ -28,8 +28,7 @@
 
 #include "fake/mbuf.h"
 
-#include "pktgen/Ipv4Matcher.h"
-#include "pktgen/Ipv4Header.h"
+#include "pktgen/Ipv4.h"
 
 extern "C" {
 #include "kern_include/sys/types.h"
@@ -46,7 +45,7 @@ bool operator!=(in_addr a, in_addr b)
 
 namespace PktGen
 {
-	Ipv4Matcher::Ipv4Matcher(const Ipv4Template & h, size_t offset)
+	Ipv4Matcher::Ipv4Matcher(UnnestedIpv4Template && h, size_t offset)
 	  : header(h),
 	    headerOffset(offset)
 	{
@@ -54,8 +53,8 @@ namespace PktGen
 
 	#define	CheckField(hdr, field, expect) do { \
 		if (ntoh((hdr)->field) != (expect)) { \
-			*listener << "IPv4: " << #field << " field is " << ntoh((hdr)->field) \
-			    << " (expected " << expect << ")";; \
+			*listener << "IPv4: " << #field << " field is " << (int)ntoh((hdr)->field) \
+			    << " (expected " << (int)expect << ")";; \
 			return false; \
 		} \
 	} while (0)

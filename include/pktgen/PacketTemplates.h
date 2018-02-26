@@ -26,37 +26,32 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_IPV4_MATCHER_H
-#define PKTGEN_IPV4_MATCHER_H
+#ifndef PKTGEN_PACKET_TEMPLATES_H
+#define PKTGEN_PACKET_TEMPLATES_H
 
-#include <gmock/gmock-matchers.h>
-
-#include "pktgen/PacketTemplates.h"
-
-struct mbuf;
+#include "pktgen/Layer.h"
 
 namespace PktGen
 {
-	class Ipv4Matcher : public testing::MatcherInterface<mbuf*>
-	{
-	private:
-		UnnestedIpv4Template header;
-		size_t headerOffset;
+	template <typename Nesting>
+	class EthernetTemplate;
 
-	public:
-		Ipv4Matcher(UnnestedIpv4Template && header, size_t off);
-
-		virtual bool MatchAndExplain(mbuf*,
-                    testing::MatchResultListener* listener) const override;
-
-		virtual void DescribeTo(::std::ostream* os) const override;
-	};
+	typedef EthernetTemplate<DefaultNestingLevel> UnnestedEthernetTemplate;
 
 	template <typename Nesting>
-	auto inline PacketMatcher(const Ipv4Template<Nesting> & t, size_t off)
-	{
-		return Ipv4Matcher(t.StripNesting(), off);
-	}
+	class Ipv4Template;
+
+	typedef Ipv4Template<DefaultNestingLevel> UnnestedIpv4Template;
+
+	template <typename Nesting>
+	class TcpTemplate;
+
+	typedef TcpTemplate<DefaultNestingLevel> UnnestedTcpTemplate;
+
+	template <typename Nesting>
+	class PayloadTemplate;
+
+	typedef PayloadTemplate<DefaultNestingLevel> UnnestedPayloadTemplate;
 }
 
 #endif

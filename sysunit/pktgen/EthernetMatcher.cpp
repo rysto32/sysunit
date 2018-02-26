@@ -28,9 +28,7 @@
 
 #include "fake/mbuf.h"
 
-#include "pktgen/EthernetMatcher.h"
-
-#include "pktgen/EthernetHeader.h"
+#include "pktgen/Ethernet.h"
 
 #include <netinet/in.h>
 
@@ -38,7 +36,7 @@ using testing::MatchResultListener;
 
 namespace PktGen
 {
-	EthernetMatcher::EthernetMatcher(const EthernetTemplate & h, size_t off)
+	EthernetMatcher::EthernetMatcher(UnnestedEthernetTemplate && h, size_t off)
 	  : header(h),
 	    headerOffset(off)
 	{

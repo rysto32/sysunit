@@ -30,8 +30,7 @@
 
 #include "fake/mbuf.h"
 
-#include "pktgen/PayloadMatcher.h"
-#include "pktgen/PacketPayloadTemplate.h"
+#include "pktgen/PacketPayload.h"
 
 #include "pktgen/Packet.h"
 
@@ -41,8 +40,8 @@ using testing::MatchResultListener;
 
 namespace PktGen
 {
-	PayloadMatcher::PayloadMatcher(const PayloadTemplate & p, size_t off)
-	  : payload(p),
+	PayloadMatcher::PayloadMatcher(UnnestedPayloadTemplate && p, size_t off)
+	  : payload(std::move(p)),
 	    headerOffset(off)
 	{
 	}

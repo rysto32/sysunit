@@ -35,9 +35,11 @@
 #include "pktgen/EtherAddr.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
+#include "pktgen/PacketTemplates.h"
 
 namespace PktGen {
 
+	template <typename Nesting>
 	class EthernetTemplate
 	{
 	private:
@@ -45,14 +47,25 @@ namespace PktGen {
 		EtherAddr src;
 		uint16_t ethertype;
 
+		typedef EthernetTemplate<Nesting> SelfType;
+
 	public:
-		static const auto LAYER = Layer::L2;
+		typedef typename Nesting::NextL2 NESTING_LEVEL;
+		typedef typename NESTING_LEVEL::L2 LAYER;
 
 		// This is to appease EncapsulatableHeader
 		typedef NullEncapFieldSetter EncapFieldSetter;
 
 		EthernetTemplate()
 		  : ethertype(0)
+		{
+		}
+
+		template <typename U>
+		explicit EthernetTemplate(const EthernetTemplate<U> & h)
+		  : dst(h.GetDst()),
+		    src(h.GetSrc()),
+		    ethertype(h.GetEthertype())
 		{
 		}
 
@@ -106,9 +119,20 @@ namespace PktGen {
 		{
 		}
 
-		EthernetTemplate Next() const
+		SelfType Next() const
 		{
 			return *this;
+		}
+
+		template <typename NestingLevel>
+		static auto MakeNested(const SelfType & up)
+		{
+			return EthernetTemplate<NestingLevel>(up);
+		}
+
+		UnnestedEthernetTemplate StripNesting() const
+		{
+			return UnnestedEthernetTemplate(*this);
 		}
 
 		void print(int depth)
@@ -121,7 +145,7 @@ namespace PktGen {
 
 	auto inline EthernetHeader()
 	{
-		return EncapsulatableHeader<EthernetTemplate>();
+		return EncapsulatableHeader<UnnestedEthernetTemplate>();
 	}
 }
 

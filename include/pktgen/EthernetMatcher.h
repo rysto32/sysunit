@@ -29,22 +29,22 @@
 #ifndef PKTGEN_ETHER_MATCHER_H
 #define PKTGEN_ETHER_MATCHER_H
 
+#include "pktgen/PacketTemplates.h"
+
 #include <gmock/gmock-matchers.h>
 
 struct mbuf;
 
 namespace PktGen
 {
-	class EthernetTemplate;
-
 	class EthernetMatcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		const EthernetTemplate & header;
+		UnnestedEthernetTemplate header;
 		const size_t headerOffset;
 
 	public:
-		EthernetMatcher(const EthernetTemplate &, size_t off);
+		EthernetMatcher(UnnestedEthernetTemplate &&, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -52,9 +52,10 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	auto inline PacketMatcher(const EthernetTemplate & t, size_t off)
+	template <typename Nesting>
+	auto inline PacketMatcher(const EthernetTemplate<Nesting> & t, size_t off)
 	{
-		return EthernetMatcher(t, off);
+		return EthernetMatcher(t.StripNesting(), off);
 	}
 }
 

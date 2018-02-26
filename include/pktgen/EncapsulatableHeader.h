@@ -58,7 +58,8 @@ namespace PktGen
 		{
 		}
 
-		static const auto LAYER = Header::LAYER;
+		typedef typename Header::NESTING_LEVEL NESTING_LEVEL;
+		typedef typename Header::LAYER LAYER;
 		typedef Header UnderlyingHeader;
 
 		struct EncapFieldSetter
@@ -102,15 +103,15 @@ namespace PktGen
 			return Apply(f, With(a...));
 		}
 
-		template <Layer layer, typename ... Fields>
-		typename std::enable_if<layer == LAYER, SelfType>::type
+		template <typename layer, typename ... Fields>
+		typename std::enable_if<std::is_same<layer, LAYER>::value, SelfType>::type
 		WithHeaderFields(Fields... f) const
 		{
 			return With(f...);
 		}
 
 		template <typename Lower>
-		EncapsulatedHeader<Lower, SelfType> EncapIn(Lower lower) const
+		auto EncapIn(Lower lower) const
 		{
 			return MakeEncapsulation(lower, *this);
 		}
@@ -165,9 +166,16 @@ namespace PktGen
 			return SelfType(header.Next());
 		}
 
+		template <typename NestingLevel>
+		static auto MakeNested(const SelfType & up)
+		{
+			auto newHeader(Header::template MakeNested<NestingLevel>(up.header));
+			return EncapsulatableHeader<decltype(newHeader)>(newHeader);
+		}
+
 		void print(int depth)
 		{
-			PrintIndent(depth, "Encapable %s : {", LayerStr(LAYER));
+			PrintIndent(depth, "Encapable %s : {", LAYER::Name().c_str());
 			header.print(depth + 1);
 			PrintIndent(depth, "}");
 		}

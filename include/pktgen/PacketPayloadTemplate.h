@@ -33,6 +33,7 @@
 
 #include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Layer.h"
+#include "pktgen/PacketTemplates.h"
 
 #include <stdint.h>
 #include <vector>
@@ -116,29 +117,37 @@ namespace PktGen
 		}
 	};
 
+	typedef std::vector<uint8_t> PayloadVector;
+
+	template <typename Nesting>
 	class PayloadTemplate
 	{
-	public:
-		typedef std::vector<uint8_t> PayloadVector;
-
 	private:
 		PayloadVector payload;
 
 	public:
-		static const auto LAYER = Layer::PAYLOAD;
+		typedef typename Nesting::NextPayload NESTING_LEVEL;
+		typedef typename NESTING_LEVEL::PAYLOAD LAYER;
+		typedef PayloadTemplate<Nesting> SelfType;
 
 		struct EncapFieldSetter
 		{
 			template <typename Header>
 			Header operator()(const Header & h, const PayloadTemplate & t) const
 			{
-				return h.template WithHeaderFields<Layer::L4>(
+				return h.With(
 				    PayloadSizeField(t.GetLen())
 				);
 			}
 		};
 
 		PayloadTemplate() = default;
+
+		template <typename U>
+		explicit PayloadTemplate(const PayloadTemplate<U> & h)
+		  : payload(h.GetPayload())
+		{
+		}
 
 		void SetPayload(const PayloadVector & p)
 		{
@@ -175,16 +184,20 @@ namespace PktGen
 			return *this;
 		}
 
-		void print(int depth)
+		template <typename NestingLevel>
+		static auto MakeNested(const SelfType & up)
 		{
-			PrintIndent(depth, "Payload = {");
-			PrintIndent(depth + 1, "len = %zd", GetLen());
-			PrintIndent(depth, "}");
+			return PayloadTemplate<NestingLevel>(up);
+		}
+
+		UnnestedPayloadTemplate StripNesting() const
+		{
+			return UnnestedPayloadTemplate(*this);
 		}
 
 		static PayloadVector FillPayload(const std::string & str, size_t count)
 		{
-			PayloadTemplate::PayloadVector p;
+			PayloadVector p;
 
 			while (count > 0) {
 				for (auto ch : str) {
@@ -197,32 +210,43 @@ namespace PktGen
 
 			return p;
 		}
+
+		void SetPayloadLength(size_t)
+		{
+		}
+
+		void print(int depth)
+		{
+			PrintIndent(depth, "Payload = {");
+			PrintIndent(depth + 1, "len = %zd", GetLen());
+			PrintIndent(depth, "}");
+		}
 	};
 
 	auto inline PacketPayload()
 	{
-		return EncapsulatableHeader(PayloadTemplate());
+		return EncapsulatableHeader(UnnestedPayloadTemplate());
 	}
 
-	auto inline payload(PayloadTemplate::PayloadVector && p)
+	auto inline payload(PayloadVector && p)
 	{
 		return PayloadField(std::move(p),
-		    [](auto & h, const PayloadTemplate::PayloadVector & p) { h.SetPayload(p); });
+		    [](auto & h, const PayloadVector & p) { h.SetPayload(p); });
 	}
 
 	auto inline payload()
 	{
-		return payload(PayloadTemplate::PayloadVector());
+		return payload(PayloadVector());
 	}
 
 	auto inline payload(uint8_t byte, size_t count = 1)
 	{
-		return payload(PayloadTemplate::PayloadVector(count, byte));
+		return payload(PayloadVector(count, byte));
 	}
 
 	auto inline payload(const std::string & str, size_t count)
 	{
-		return payload(PayloadTemplate::FillPayload(str, count));
+		return payload(UnnestedPayloadTemplate::FillPayload(str, count));
 	}
 
 	auto inline payload(const std::string & p)
@@ -230,20 +254,20 @@ namespace PktGen
 		return payload(p, p.size());
 	}
 
-	auto inline appendPayload(PayloadTemplate::PayloadVector && p)
+	auto inline appendPayload(PayloadVector && p)
 	{
 		return PayloadField(std::move(p),
-		    [](auto & h, const PayloadTemplate::PayloadVector & p) { h.AppendPayload(p); });
+		    [](auto & h, const PayloadVector & p) { h.AppendPayload(p); });
 	}
 
 	auto inline appendPayload(uint8_t byte, size_t count = 1)
 	{
-		return appendPayload(PayloadTemplate::PayloadVector(count, byte));
+		return appendPayload(PayloadVector(count, byte));
 	}
 
 	auto inline appendPayload(const std::string & str, size_t count)
 	{
-		return appendPayload(PayloadTemplate::FillPayload(str, count));
+		return appendPayload(UnnestedPayloadTemplate::FillPayload(str, count));
 	}
 
 	auto inline appendPayload(const std::string & p)

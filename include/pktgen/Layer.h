@@ -29,17 +29,96 @@
 #ifndef PKTGEN_LAYER_H
 #define PKTGEN_LAYER_H
 
+#include <string>
+
 namespace PktGen
 {
-	enum class Layer {
-		L2,
-		L3,
-		L4,
-		PAYLOAD
+	namespace NestedLayer
+	{
+		std::string MakeName(const std::string & shortName, int nesting);
+
+		template <int Nesting>
+		struct L2
+		{
+			static std::string ShortName()
+			{
+				return "L2";
+			}
+
+			static std::string Name()
+			{
+				return MakeName(ShortName(), Nesting);
+			}
+		};
+
+		template <int Nesting>
+		struct L3
+		{
+			static std::string ShortName()
+			{
+				return "L3";
+			}
+
+			static std::string Name()
+			{
+				return MakeName(ShortName(), Nesting);
+			}
+		};
+
+		template <int Nesting>
+		struct L4
+		{
+			static std::string ShortName()
+			{
+				return "L4";
+			}
+
+			static std::string Name()
+			{
+				return MakeName(ShortName(), Nesting);
+			}
+		};
+
+		template <int Nesting>
+		struct PAYLOAD
+		{
+			static std::string ShortName()
+			{
+				return "PAYLOAD";
+			}
+
+			static std::string Name()
+			{
+				return MakeName(ShortName(), Nesting);
+			}
+		};
+	}
+
+	namespace Layer
+	{
+		typedef NestedLayer::L2<1> L2;
+		typedef NestedLayer::L3<1> L3;
+		typedef NestedLayer::L4<1> L4;
+		typedef NestedLayer::PAYLOAD<1> PAYLOAD;
 	};
+
+	template <int l2Nest = 0, int l3Nest = 0, int l4Nest = 0, int payloadNest = 0>
+	struct CurrentNesting
+	{
+		typedef NestedLayer::L2<l2Nest> L2;
+		typedef NestedLayer::L3<l3Nest> L3;
+		typedef NestedLayer::L4<l4Nest> L4;
+		typedef NestedLayer::PAYLOAD<payloadNest> PAYLOAD;
+
+		typedef CurrentNesting<l2Nest + 1, l3Nest, l4Nest, payloadNest> NextL2;
+		typedef CurrentNesting<l2Nest, l3Nest + 1, l4Nest, payloadNest> NextL3;
+		typedef CurrentNesting<l2Nest, l3Nest, l4Nest + 1, payloadNest> NextL4;
+		typedef CurrentNesting<l2Nest, l3Nest, l4Nest, payloadNest + 1> NextPayload;
+	};
+
+	typedef CurrentNesting<> DefaultNestingLevel;
 }
 
-const char * LayerStr(PktGen::Layer);
 void PrintIndent(int, const char *, ...);
 
 #endif

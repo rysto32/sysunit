@@ -42,7 +42,7 @@ namespace PktGen
 	class EncapsulatedHeader;
 
 	template <typename Lower, typename Upper>
-	EncapsulatedHeader<Lower, Upper> MakeEncapsulation(const Lower & low, const Upper & up);
+	auto MakeEncapsulation(const Lower & low, const Upper & up);
 
 	template <typename Lower, typename Upper>
 	class EncapsulatedHeader
@@ -53,7 +53,8 @@ namespace PktGen
 
 		typedef EncapsulatedHeader<Lower, Upper> SelfType;
 	public:
-		static const auto LAYER = Upper::LAYER;
+		typedef typename Upper::LAYER LAYER;
+		typedef typename Upper::NESTING_LEVEL NESTING_LEVEL;
 		typedef typename Upper::EncapFieldSetter EncapFieldSetter;
 
 		EncapsulatedHeader(const Lower & low, const Upper & up)
@@ -97,15 +98,15 @@ namespace PktGen
 			return SelfType::Apply(f, With(args...));
 		}
 
-		template <Layer layer, typename ... Fields>
-		typename std::enable_if<layer == LAYER, SelfType>::type
+		template <typename layer, typename ... Fields>
+		typename std::enable_if<std::is_same<layer, LAYER>::value, SelfType>::type
 		WithHeaderFields(Fields... f) const
 		{
 			return With(f...);
 		}
 
-		template <Layer layer, typename ... Fields>
-		typename std::enable_if<layer != LAYER, SelfType>::type
+		template <typename layer, typename ... Fields>
+		typename std::enable_if<!std::is_same<layer, LAYER>::value, SelfType>::type
 		WithHeaderFields(Fields... f) const
 		{
 			auto newLower(lower.template WithHeaderFields<layer>(f...));
@@ -178,7 +179,7 @@ namespace PktGen
 
 		void print(int depth)
 		{
-			PrintIndent(depth, "Encapped %s/%s : {", LayerStr(Upper::LAYER), LayerStr(Lower::LAYER));
+			PrintIndent(depth, "Encapped %s/%s : {", Upper::LAYER::Name().c_str(), Lower::LAYER::Name().c_str());
 			upper.print(depth + 1);
 			lower.print(depth + 1);
 			PrintIndent(depth, "}");
@@ -186,10 +187,12 @@ namespace PktGen
 	};
 
 	template <typename Lower, typename Upper>
-	EncapsulatedHeader<Lower, Upper> MakeEncapsulation(const Lower & low, const Upper & up)
+	auto MakeEncapsulation(const Lower & low, const Upper & up)
 	{
-		typename Upper::EncapFieldSetter setter;
-		return EncapsulatedHeader<Lower, Upper>(setter(low, up), up);
+		auto newUpper = Upper::template MakeNested<typename Lower::NESTING_LEVEL>(up);
+		typename decltype(newUpper)::EncapFieldSetter setter;
+		auto newLower = setter(low, newUpper);
+		return EncapsulatedHeader(newLower, newUpper);
 	}
 
 	template <typename LowerMatcher, typename UpperMatcher>

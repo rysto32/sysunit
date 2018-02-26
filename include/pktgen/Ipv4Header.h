@@ -47,6 +47,7 @@ extern "C" {
 
 namespace PktGen
 {
+	template <typename Nesting>
 	class Ipv4Template
 	{
 	private:
@@ -64,8 +65,23 @@ namespace PktGen
 		bool checksumVerified;
 		bool checksumPassed;
 
+		typedef Ipv4Template<Nesting> SelfType;
+
 	public:
-		static const auto LAYER = Layer::L3;
+		typedef typename Nesting::NextL3 NESTING_LEVEL;
+		typedef typename NESTING_LEVEL::L3 LAYER;
+
+		struct EncapFieldSetter
+		{
+			template <typename Header>
+			Header operator()(const Header & h, const Ipv4Template & t) const
+			{
+				return h.template With(
+				    ethertype(GetEthertype()),
+				    PayloadSizeField(t.ipLen)
+				);
+			}
+		};
 
 		Ipv4Template()
 		  : headerLen(sizeof(struct ip) / sizeof(uint32_t)),
@@ -78,6 +94,23 @@ namespace PktGen
 		    checksum(0),
 		    checksumVerified(false),
 		    checksumPassed(false)
+		{
+		}
+
+		template <typename U>
+		explicit Ipv4Template(const Ipv4Template<U> & h)
+		  : headerLen(h.GetHeaderLen()),
+		    tos(h.GetTos()),
+		    id(h.GetId()),
+		    off(h.GetOff()),
+		    ipLen(h.GetIpLen()),
+		    ttl(h.GetTtl()),
+		    proto(h.GetProto()),
+		    checksum(h.GetChecksum()),
+		    src(h.GetSrc()),
+		    dst(h.GetDst()),
+		    checksumVerified(h.GetChecksumVerified()),
+		    checksumPassed(h.GetChecksumPassed())
 		{
 		}
 
@@ -228,18 +261,6 @@ namespace PktGen
 			return headerLen * sizeof(uint32_t);
 		}
 
-		struct EncapFieldSetter
-		{
-			template <typename Header>
-			Header operator()(const Header & h, const Ipv4Template & t) const
-			{
-				return h.template WithHeaderFields<Layer::L2>(
-				    ethertype(GetEthertype()),
-				    PayloadSizeField(t.ipLen)
-				);
-			}
-		};
-
 		Ipv4Template Next() const
 		{
 			Ipv4Template copy(*this);
@@ -247,18 +268,31 @@ namespace PktGen
 			return copy;
 		}
 
-		void print(int depth)
+		template <typename NestingLevel>
+		static auto MakeNested(const SelfType & up)
+		{
+			return Ipv4Template<NestingLevel>(up);
+		}
+
+		UnnestedIpv4Template StripNesting() const
+		{
+			return UnnestedIpv4Template(*this);
+		}
+
+		void print(int depth) const
 		{
 			PrintIndent(depth, "IPv4 : {");
 			PrintIndent(depth + 1, "proto : %d", proto);
 			PrintIndent(depth + 1, "ip_len : %d", ipLen);
+			PrintIndent(depth + 1, "hl : %d", headerLen);
+			PrintIndent(depth + 1, "id : %d", id);
 			PrintIndent(depth, "}");
 		}
 	};
 
 	auto inline Ipv4Header()
 	{
-		return EncapsulatableHeader<Ipv4Template>();
+		return EncapsulatableHeader<Ipv4Template<DefaultNestingLevel>>();
 	}
 }
 

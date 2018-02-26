@@ -30,8 +30,7 @@
 
 #include "fake/mbuf.h"
 
-#include "pktgen/TcpMatcher.h"
-#include "pktgen/TcpHeader.h"
+#include "pktgen/Tcp.h"
 
 #include <gtest/gtest.h>
 #include <netinet/in.h>
@@ -39,7 +38,7 @@
 
 namespace PktGen
 {
-	TcpMatcher::TcpMatcher(const TcpTemplate &header, size_t offset)
+	TcpMatcher::TcpMatcher(UnnestedTcpTemplate && header, size_t offset)
 	  : header(header),
 	    headerOffset(offset)
 	{
@@ -47,8 +46,8 @@ namespace PktGen
 
 	#define	CheckField(th, field, expect) do { \
 		if (ntoh((th)->field) != (expect)) { \
-			*listener << "TCP: " << #field << " field is " << ntoh((th)->field) \
-			    << " (expected " << (expect) << ")"; \
+			*listener << "TCP: " << #field << " field is " << (int)ntoh((th)->field) \
+			    << " (expected " << (int)(expect) << ")"; \
 			return false; \
 		} \
 	} while (0)

@@ -45,6 +45,7 @@ extern "C" {
 
 namespace PktGen
 {
+	template <typename Nesting>
 	class TcpTemplate
 	{
 	private:
@@ -63,8 +64,23 @@ namespace PktGen
 		bool checksumPassed;
 		size_t payloadLength;
 
+		typedef TcpTemplate<Nesting> SelfType;
+
 	public:
-		static const auto LAYER = Layer::L4;
+		typedef typename Nesting::NextL4 NESTING_LEVEL;
+		typedef typename NESTING_LEVEL::L4 LAYER;
+
+		struct EncapFieldSetter
+		{
+			template <typename Header>
+			Header operator()(const Header & h, const TcpTemplate & t) const
+			{
+				return h.With(
+				    PayloadSizeField(t.GetLen() + t.payloadLength),
+				    proto(t.GetIpProto())
+				);
+			}
+		};
 
 		TcpTemplate()
 		  : th_sport(0),
@@ -78,7 +94,26 @@ namespace PktGen
 		    th_sum(0),
 		    th_urp(0),
 		    checksumVerified(false),
-		    checksumPassed(false)
+		    checksumPassed(false),
+		    payloadLength(0)
+		{
+		}
+
+		template <typename U>
+		TcpTemplate(const TcpTemplate<U> & h)
+		  : th_sport(h.GetSrcPort()),
+		    th_dport(h.GetDstPort()),
+		    th_seq(h.GetSeq()),
+		    th_ack(h.GetAck()),
+		    th_off(h.GetOff()),
+		    th_x2(h.GetX2()),
+		    th_flags(h.GetFlags()),
+		    th_win(h.GetWindow()),
+		    th_sum(h.GetChecksum()),
+		    th_urp(h.GetUrgentPointer()),
+		    checksumVerified(h.GetChecksumVerified()),
+		    checksumPassed(h.GetChecksumPassed()),
+		    payloadLength(h.GetPayloadLength())
 		{
 		}
 
@@ -197,6 +232,28 @@ namespace PktGen
 			return IPPROTO_TCP;
 		}
 
+		size_t GetLen() const
+		{
+			return th_off * sizeof(uint32_t);
+		}
+
+		size_t GetPayloadLength() const
+		{
+			return payloadLength;
+		}
+
+		void SetPayloadLength(size_t len)
+		{
+			payloadLength = len;
+		}
+
+		TcpTemplate Next() const
+		{
+			TcpTemplate copy(*this);
+			copy.SetSeq(th_seq + payloadLength);
+			return copy;
+		}
+
 		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
 		{
 			auto * tcp = GetMbufHeader<tcphdr>(m, offset);
@@ -225,34 +282,16 @@ namespace PktGen
 			offset += GetLen();
 		}
 
-		size_t GetLen() const
+		template <typename NestingLevel>
+		static auto MakeNested(const SelfType & up)
 		{
-			return th_off * sizeof(uint32_t);
+			return TcpTemplate<NestingLevel>(up);
 		}
 
-		void SetPayloadLength(size_t len)
+		UnnestedTcpTemplate StripNesting() const
 		{
-			payloadLength = len;
+			return UnnestedTcpTemplate(*this);
 		}
-
-		TcpTemplate Next() const
-		{
-			TcpTemplate copy(*this);
-			copy.SetSeq(th_seq + payloadLength);
-			return copy;
-		}
-
-		struct EncapFieldSetter
-		{
-			template <typename Header>
-			Header operator()(const Header & h, const TcpTemplate & t) const
-			{
-				return h.template WithHeaderFields<Layer::L3>(
-				    PayloadSizeField(t.GetLen() + t.payloadLength),
-				    proto(t.GetIpProto())
-				);
-			}
-		};
 
 		void print(int depth)
 		{
@@ -265,7 +304,7 @@ namespace PktGen
 
 	auto inline TcpHeader()
 	{
-		return EncapsulatableHeader<TcpTemplate>();
+		return EncapsulatableHeader<UnnestedTcpTemplate>();
 	}
 }
 

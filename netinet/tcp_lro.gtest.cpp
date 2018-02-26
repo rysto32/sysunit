@@ -66,23 +66,6 @@ void PrintIndent(int depth, const char * fmt, ...)
 	printf("\n");
 }
 
-
-const char * LayerStr(PktGen::Layer l)
-{
-	switch (l) {
-		case PktGen::Layer::L2:
-			return "L2";
-		case PktGen::Layer::L3:
-			return "L3";
-		case PktGen::Layer::L4:
-			return "L4";
-		case PktGen::Layer::PAYLOAD:
-			return "PAYLOAD";
-		default:
-			return "UNKNOWN";
-	}
-}
-
 using namespace PktGen;
 using namespace testing;
 
