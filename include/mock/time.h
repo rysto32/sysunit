@@ -31,18 +31,14 @@
 
 #include "mock/GlobalMock.h"
 
-class MockTime : public GlobalMockBase<MockTime>
+class MockTime : public GlobalMock<MockTime>
 {
 public:
 	MOCK_METHOD1(getmicrotime, void(struct timeval *));
-};
 
-class GlobalMockTime : public GlobalMock<MockTime>
-{
-public:
-	void ExpectGetMicrotime(const struct timeval &tv)
+	static void ExpectGetMicrotime(const struct timeval &tv)
 	{
-		EXPECT_CALL(**this, getmicrotime(testing::_))
+		EXPECT_CALL(MockObj(), getmicrotime(testing::_))
 		  .Times(1)
 		  .WillOnce(testing::SetArgPointee<0>(tv))
 		  .RetiresOnSaturation();

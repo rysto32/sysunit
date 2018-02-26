@@ -29,32 +29,35 @@
 #ifndef MOCK_GLOBAL_MOCK_H
 #define MOCK_GLOBAL_MOCK_H
 
+#include "sysunit/Initializer.h"
+
 #include <gmock/gmock.h>
 
 #include <memory>
 
 template <typename Mock>
-class GlobalMock
+class GlobalMockInitializer : public SysUnit::Initializer
 {
 public:
-	GlobalMock()
+	// I don't know why, but if this constructor doesn't take
+	// a dummy int argument it is never called at all.
+	GlobalMockInitializer(int)
+	{
+	}
+
+	void SetUp() override
 	{
 		Mock::SetUp();
 	}
 
-	~GlobalMock()
+	void TearDown() override
 	{
 		Mock::TearDown();
-	}
-
-	auto & operator*()
-	{
-		return Mock::MockObj();
 	}
 };
 
 template <typename Derived>
-class GlobalMockBase
+class GlobalMock
 {
 private:
 	typedef std::unique_ptr<testing::StrictMock<Derived>> MockPtr;
@@ -70,18 +73,23 @@ private:
 		mockobj.reset();
 	}
 
-	friend class GlobalMock<Derived>;
+	typedef GlobalMockInitializer<Derived> Initializer;
+	friend Initializer;
+
+	static Initializer initializer;
 
 public:
 
 	static auto & MockObj()
 	{
+		if (!mockobj)
+			throw std::runtime_error(std::string("Mock ") + (typeid(Derived).name()) + " was not initialized.");
 		return *mockobj;
 	}
 
 };
 
 template <typename T>
-typename GlobalMockBase<T>::MockPtr GlobalMockBase<T>::mockobj;
+typename GlobalMock<T>::MockPtr GlobalMock<T>::mockobj;
 
 #endif

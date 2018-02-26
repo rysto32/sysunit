@@ -132,17 +132,9 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 
 	// Initialize mocks.  Mocks are used to implement kernel APIs depended
 	// on by the code being tested.
-	// The MockTime interface is used to implement time-based APIs.  In this
-	// case it's used for its implementation of getmicrotime().
-	GlobalMockTime mockTv;
-
 	// A MockIfnet instance mocks the APIs provided by callbacks in struct ifnet.
 	// This ifnet will be named mock0
 	StrictMock<MockIfnet> mockIfp("mock", 0);
-
-	// Inform the mock to expect a single call to getmicrotime(), and specify the
-	// value that will be returned to the code under test when it's called.
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
 
 	// Inform the mock that we expect tcp_lro to pass in a packet matching out
 	// template exactly once.  The test will fail if if_input() is not called
@@ -150,6 +142,12 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 	// the template.
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(pktTemplate)))
 	    .Times(1);
+
+	// The MockTime interface is used to implement time-based APIs.  In this
+	// case it's used for its implementation of getmicrotime().
+	// Inform the mock to expect a single call to getmicrotime(), and specify the
+	// value that will be returned to the code under test when it's called.
+	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
 
 	// Test setup is complete.  The code that follows is the actual test case.
 
@@ -232,14 +230,13 @@ TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 	auto expected = pktTemplate1.With(appendPayload("678"));
 
 	// Initialize the same mocks as last time.
-	GlobalMockTime mockTv;
 	StrictMock<MockIfnet> mockIfp("mock", 0);
 
 	// getmicrotime() is called once per packet, so set it to expect to be
 	// called twice.  The second call will look like it happend 250us after
 	// the first.
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
+	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
 
 	// Tell the mockIfp to expect the single merged packet
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
@@ -295,12 +292,11 @@ TEST_F(TcpLroTestSuite, TestMergeAckData)
 	    payloadTemplate
 	);
 
-	GlobalMockTime mockTv;
 	StrictMock<MockIfnet> mockIfp("mock", 0);
 
 	// getmicrotime() is called once per packet
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
+	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
 
 	// Tell the mockIfp to expect the single merged packet
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
@@ -336,7 +332,6 @@ TEST_F(TcpLroTestSuite, TestDupAck)
 	// ACK but with the IP id incremented.
 	auto dupAck = origAck.Next();
 
-	GlobalMockTime mockTv;
 	StrictMock<MockIfnet> mockIfp("mock", 0);
 
 	// Tell the mockIfp to expect the first ACK.  Because it is a dup ACK,
@@ -348,7 +343,7 @@ TEST_F(TcpLroTestSuite, TestDupAck)
 
 	// getmicrotime() is called once per accepted packet, so only once
 	// call is expected.
-	mockTv.ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
 
 	// Begin the testcase.
 	struct lro_ctrl lc;
@@ -385,15 +380,14 @@ TEST_F(TcpLroTestSuite, TestIncrAck)
 	    .WithHeaderFields<Layer::L4>(incrAck(1000))
 	    .WithHeaderFields<Layer::PAYLOAD>(appendPayload("abcd", 100));
 
-	GlobalMockTime mockTv;
 	StrictMock<MockIfnet> mockIfp("mock", 0);
 
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
 	// getmicrotime() is called once per accepted packet
-	mockTv.ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
-	mockTv.ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 18932});
+	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
+	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 18932});
 
 	// Begin the testcase.
 	struct lro_ctrl lc;
@@ -426,15 +420,13 @@ TEST_F(TcpLroTestSuite, TestIncrPureAck)
 	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::PAYLOAD>(payload()).WithHeaderFields<Layer::L4>(incrAck(2889));
 
 	auto expected = pkt1.WithHeaderFields<Layer::L4>(incrAck(2889));
-
-	GlobalMockTime mockTv;
 	StrictMock<MockIfnet> mockIfp("mock", 0);
 
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
 	// getmicrotime() is not called on a pure ACK
-	mockTv.ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
+	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
 
 	// Begin the testcase.
 	struct lro_ctrl lc;

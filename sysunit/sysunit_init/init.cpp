@@ -42,7 +42,7 @@ namespace SysUnit {
 			}
 		};
 
-		typedef std::set<Initializer*, InitializerComp> InitList;
+		typedef std::vector<Initializer*> InitList;
 
 		InitList & GetInitList()
 		{
@@ -50,19 +50,27 @@ namespace SysUnit {
 
 			return initList;
 		}
+
+		bool initialized = false;
 	}
 
 	Initializer::Initializer(int subsystem, int order)
 	  : subsystem(subsystem),
 	    order(order)
 	{
-		GetInitList().insert(this);
+		if (initialized)
+			throw std::runtime_error("Initializer registered too late");
+		GetInitList().push_back(this);
 	}
 
 	void TestSuite::SetUp()
 	{
-		for (auto * init : GetInitList())
+		auto & initList(GetInitList());
+		std::sort(initList.begin(), initList.end(), InitializerComp());
+
+		for (auto * init : initList)
 			init->SetUp();
+		initialized = true;
 	}
 
 	void TestSuite::TearDown()

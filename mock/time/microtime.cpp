@@ -7,6 +7,9 @@ extern "C" {
 
 #include "mock/time.h"
 
+template <>
+typename GlobalMock<MockTime>::Initializer GlobalMock<MockTime>::initializer(0);
+
 extern "C" void
 getmicrotime(struct timeval *tvp)
 {
