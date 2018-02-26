@@ -21,6 +21,8 @@ $($(LIB)_LIBRARY): $($(LIB)_DOBJS)
 	mkdir -p $(dir $@)
 	$(AR) -crs $@ $^
 
+libraries:: $($(LIB)_LIBRARY)
+
 $($(LIB)_DOBJS): LOCAL_INCLUDE := $(LOCAL_INCLUDE)
 $($(LIB)_DOBJS): LIB := $(LIB)
 
