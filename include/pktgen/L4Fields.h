@@ -51,6 +51,11 @@ namespace PktGen
 		return [x](auto & h) { h.SetAck(x); };
 	}
 
+	auto inline incrAck(uint32_t x)
+	{
+		return [x](auto & h) { h.SetAck(h.GetAck() + x); };
+	}
+
 	auto inline flags(uint8_t x)
 	{
 		return [x](auto & h) { h.SetFlags(x); };

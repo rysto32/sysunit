@@ -210,6 +210,11 @@ namespace PktGen
 		    [](auto & h, const PayloadTemplate::PayloadVector & p) { h.SetPayload(p); });
 	}
 
+	auto inline payload()
+	{
+		return payload(PayloadTemplate::PayloadVector());
+	}
+
 	auto inline payload(uint8_t byte, size_t count = 1)
 	{
 		return payload(PayloadTemplate::PayloadVector(count, byte));

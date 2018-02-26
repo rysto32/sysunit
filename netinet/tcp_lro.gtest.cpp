@@ -273,7 +273,7 @@ TEST_F(TcpLroTestSuite, TestMergeAckData)
 	// This template represents a pure  ACK packet.
 	auto pktTemplate1 = GetTcpTemplate()
 	    .WithHeaderFields<Layer::L3>(id(firstId))
-	    .WithHeaderFields<Layer::L4>(flags(TH_ACK));
+	    .WithHeaderFields<Layer::L4>(ack(889925), flags(TH_ACK));
 
 	// Generate a second template that is the next in the TCP sequence.
 	// This will have a 20-byte payload
@@ -368,5 +368,88 @@ TEST_F(TcpLroTestSuite, TestDupAck)
 	// tcp_lro_rx() does not consume the mbuf when it returns non-zero, so
 	// have to manually free it here.
 	m_freem(m2);
+}
+
+// Send two packets with TH_ACK set, and the second with a th_ack higher
+// than the first.  Verify that the merged packet sent up the stack has the
+// th_ack value from the second packet.
+TEST_F(TcpLroTestSuite, TestIncrAck)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::L4>(ack(965), flags(TH_ACK))
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("abcd", 100));
+
+	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::L4>(incrAck(1000));
+
+	auto expected = pkt1
+	    .WithHeaderFields<Layer::L4>(incrAck(1000))
+	    .WithHeaderFields<Layer::PAYLOAD>(appendPayload("abcd", 100));
+
+	GlobalMockTime mockTv;
+	StrictMock<MockIfnet> mockIfp("mock", 0);
+
+	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	    .Times(1);
+
+	// getmicrotime() is called once per accepted packet
+	mockTv.ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
+	mockTv.ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 18932});
+
+	// Begin the testcase.
+	struct lro_ctrl lc;
+	tcp_lro_init(&lc);
+	lc.ifp = mockIfp.GetIfp();
+
+	// Send the two frames in sequence to tcp_lro_rx().  Test the return
+	// value from each call.
+	int ret = tcp_lro_rx(&lc, pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	// tcp_lro_rx() will detect the dup ACK here
+	ret = tcp_lro_rx(&lc, pkt2.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	tcp_lro_flush_all(&lc);
+}
+
+// Send a data packet followed by a pure ACK with a larger th_ack field.
+// Verify that the merged frame sent up the stack has the th_ack field from
+// the pure ACK.
+TEST_F(TcpLroTestSuite, TestIncrPureAck)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::L4>(ack(965), flags(TH_ACK))
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("abcd", 100));
+
+	// Generate a dup ACK.  This should be a replica of the original
+	// ACK but with the IP id incremented.
+	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::PAYLOAD>(payload()).WithHeaderFields<Layer::L4>(incrAck(2889));
+
+	auto expected = pkt1.WithHeaderFields<Layer::L4>(incrAck(2889));
+
+	GlobalMockTime mockTv;
+	StrictMock<MockIfnet> mockIfp("mock", 0);
+
+	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	    .Times(1);
+
+	// getmicrotime() is not called on a pure ACK
+	mockTv.ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
+
+	// Begin the testcase.
+	struct lro_ctrl lc;
+	tcp_lro_init(&lc);
+	lc.ifp = mockIfp.GetIfp();
+
+	// Send the two frames in sequence to tcp_lro_rx().  Test the return
+	// value from each call.
+	int ret = tcp_lro_rx(&lc, pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	// tcp_lro_rx() will detect the dup ACK here
+	ret = tcp_lro_rx(&lc, pkt2.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	tcp_lro_flush_all(&lc);
 }
 
