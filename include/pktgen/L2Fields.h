@@ -34,13 +34,13 @@
 namespace PktGen
 {
 	template <typename Addr>
-	auto inline src(const Addr & x)
+	auto inline src(Addr x)
 	{
 		return [x](auto & h) { h.SetSrc(x); };
 	}
 
 	template <typename Addr>
-	auto inline dst(const Addr & x)
+	auto inline dst(Addr x)
 	{
 		return [x](auto & h) { h.SetDst(x); };
 	}
