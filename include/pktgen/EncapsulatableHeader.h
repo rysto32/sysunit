@@ -183,7 +183,8 @@ namespace PktGen
 
 		void print(int depth)
 		{
-			PrintIndent(depth, "Encapable %s : {", LAYER::Name().c_str());
+			std::string headerName(LAYER::Name());
+			PrintIndent(depth, "Encapable %s : {", headerName.c_str());
 			header.print(depth + 1);
 			PrintIndent(depth, "}");
 		}

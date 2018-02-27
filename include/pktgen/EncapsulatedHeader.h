@@ -188,9 +188,11 @@ namespace PktGen
 
 		void print(int depth)
 		{
-			PrintIndent(depth, "Encapped %s/%s : {", Upper::LAYER::Name().c_str(), Lower::LAYER::Name().c_str());
-			upper.print(depth + 1);
+			std::string innerName(Lower::LAYER::Name());
+			std::string outerName(Upper::LAYER::Name());
+			PrintIndent(depth, "Encapped %s/%s : {", innerName.c_str(), outerName.c_str());
 			lower.print(depth + 1);
+			upper.print(depth + 1);
 			PrintIndent(depth, "}");
 		}
 	};
