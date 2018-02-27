@@ -474,3 +474,68 @@ TEST_F(TcpLroTestSuite, TestIncrPureAck)
 	tcp_lro_flush_all(&lc);
 }
 
+// Test the reception of out-of-order packets where the TCP sequence
+// number is observed to go backwards.  Verify that the queued packet
+// is immediately flushed up the stack while the second, out-of-order
+// packet is rejected by LRO.
+TEST_F(TcpLroTestSuite, TestOoOBackwards)
+{
+	// This is the second packet that will be sent to LRO
+	auto pkt2 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+
+	// This is the first packet that will be sent to LRO.
+	auto pkt1 = pkt2.Next();
+
+	// The first packet should be flushed by LRO immediately when
+	// it sees the second, out-of-order packet.
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pkt1)))
+	    .Times(1);
+
+	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
+
+	// Begin the testcase.
+
+	// Send the two frames in sequence to tcp_lro_rx().  Test the return
+	// value from each call.
+	int ret = tcp_lro_rx(&lc, pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	struct mbuf * m = pkt2.Generate();
+	ret = tcp_lro_rx(&lc, m, 0);
+	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+	m_freem(m);
+}
+
+// Test the reception of out-of-order packets where the TCP sequence
+// number is observed to jump forward (due a packet being missing).
+// Verify that the queued packet is immediately flushed up the stack
+// while the second, out-of-order packet is rejected by LRO.
+TEST_F(TcpLroTestSuite, TestOoOSkipSeq)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+
+	// We skip over one packet in the sequence by calling Next() twice.
+	auto pkt2 = pkt1.Next().Next();
+
+	// The first packet should be flushed by LRO immediately when
+	// it sees the second, out-of-order packet.
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pkt1)))
+	    .Times(1);
+
+	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
+
+	// Begin the testcase.
+
+	// Send the two frames in sequence to tcp_lro_rx().  Test the return
+	// value from each call.
+	int ret = tcp_lro_rx(&lc, pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	struct mbuf * m = pkt2.Generate();
+	ret = tcp_lro_rx(&lc, m, 0);
+	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+	m_freem(m);
+}
+
