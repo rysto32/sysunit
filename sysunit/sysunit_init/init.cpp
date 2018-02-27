@@ -71,12 +71,24 @@ namespace SysUnit {
 		for (auto * init : initList)
 			init->SetUp();
 		initialized = true;
+
+		TestCaseSetUp();
 	}
 
 	void TestSuite::TearDown()
 	{
+		TestCaseTearDown();
+
 		for (auto it = GetInitList().rbegin();
 		    it != GetInitList().rend(); ++it)
 		     (*it)->TearDown();
+	}
+
+	void TestSuite::TestCaseSetUp()
+	{
+	}
+
+	void TestSuite::TestCaseTearDown()
+	{
 	}
 }

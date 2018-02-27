@@ -74,6 +74,25 @@ int ip6_forwarding;
 
 class TcpLroTestSuite : public SysUnit::TestSuite
 {
+public:
+	struct lro_ctrl lc;
+	std::unique_ptr<StrictMock<MockIfnet>> mockIfp;
+
+	void TestCaseSetUp() override
+	{
+		// A MockIfnet instance mocks the APIs provided by callbacks in struct ifnet.
+		// This ifnet will be named mock0
+		mockIfp = std::make_unique<StrictMock<MockIfnet>>("mock", 0);
+
+		tcp_lro_init(&lc);
+		lc.ifp = mockIfp->GetIfp();
+	}
+
+	void TestCaseTearDown() override
+	{
+		tcp_lro_free(&lc);
+		mockIfp.reset();
+	}
 };
 
 // Generate a single TCP/IPv4 packet and send it through tcp_lro_rx().  Verify
@@ -115,15 +134,12 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 
 	// Initialize mocks.  Mocks are used to implement kernel APIs depended
 	// on by the code being tested.
-	// A MockIfnet instance mocks the APIs provided by callbacks in struct ifnet.
-	// This ifnet will be named mock0
-	StrictMock<MockIfnet> mockIfp("mock", 0);
 
 	// Inform the mock that we expect tcp_lro to pass in a packet matching out
 	// template exactly once.  The test will fail if if_input() is not called
 	// exactly 1 time, or if it is called but with a packet that does not match
 	// the template.
-	EXPECT_CALL(mockIfp, if_input(PacketMatcher(pktTemplate)))
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pktTemplate)))
 	    .Times(1);
 
 	// The MockTime interface is used to implement time-based APIs.  In this
@@ -133,11 +149,6 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
 
 	// Test setup is complete.  The code that follows is the actual test case.
-
-	// Initialize tcp_lro's state
-	struct lro_ctrl lc;
-	tcp_lro_init(&lc);
-	lc.ifp = mockIfp.GetIfp();
 
 	// Pass an mbuf based on our template to tcp_lro_rx(), and test the return
 	// value to confirm that tcp_lro_rx() accepted the mbuf.
@@ -212,9 +223,6 @@ TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 	// packet appended.
 	auto expected = pktTemplate1.With(appendPayload("678"));
 
-	// Initialize the same mocks as last time.
-	StrictMock<MockIfnet> mockIfp("mock", 0);
-
 	// getmicrotime() is called once per packet, so set it to expect to be
 	// called twice.  The second call will look like it happend 250us after
 	// the first.
@@ -222,13 +230,10 @@ TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
 
 	// Tell the mockIfp to expect the single merged packet
-	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
 	// Begin the testcase
-	struct lro_ctrl lc;
-	tcp_lro_init(&lc);
-	lc.ifp = mockIfp.GetIfp();
 
 	// Send the two frames in sequence to tcp_lro_rx() and verify the
 	// return value from each call.
@@ -275,20 +280,15 @@ TEST_F(TcpLroTestSuite, TestMergeAckData)
 	    payloadTemplate
 	);
 
-	StrictMock<MockIfnet> mockIfp("mock", 0);
-
 	// getmicrotime() is called once per packet
 	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
 	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 750});
 
 	// Tell the mockIfp to expect the single merged packet
-	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
 	// Begin the testcase.
-	struct lro_ctrl lc;
-	tcp_lro_init(&lc);
-	lc.ifp = mockIfp.GetIfp();
 
 	// Send the two frames in sequence to tcp_lro_rx().  Verify the return
 	// value from each call.
@@ -315,13 +315,11 @@ TEST_F(TcpLroTestSuite, TestDupAck)
 	// ACK but with the IP id incremented.
 	auto dupAck = origAck.Next();
 
-	StrictMock<MockIfnet> mockIfp("mock", 0);
-
 	// Tell the mockIfp to expect the first ACK.  Because it is a dup ACK,
 	// it will reject the second packet, so if_input() won't see the second
 	// one.  In a real ethernet driver, the driver would then be responsible
 	// for sending the second packet up to if_input() itself.
-	EXPECT_CALL(mockIfp, if_input(PacketMatcher(origAck)))
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(origAck)))
 	    .Times(1);
 
 	// getmicrotime() is called once per accepted packet, so only once
@@ -329,9 +327,6 @@ TEST_F(TcpLroTestSuite, TestDupAck)
 	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
 
 	// Begin the testcase.
-	struct lro_ctrl lc;
-	tcp_lro_init(&lc);
-	lc.ifp = mockIfp.GetIfp();
 
 	// Send the two frames in sequence to tcp_lro_rx().  Test the return
 	// value from each call.
@@ -363,9 +358,7 @@ TEST_F(TcpLroTestSuite, TestIncrAck)
 	    .WithHeaderFields<Layer::L4>(incrAck(1000))
 	    .WithHeaderFields<Layer::PAYLOAD>(appendPayload("abcd", 100));
 
-	StrictMock<MockIfnet> mockIfp("mock", 0);
-
-	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
 	// getmicrotime() is called once per accepted packet
@@ -373,9 +366,6 @@ TEST_F(TcpLroTestSuite, TestIncrAck)
 	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 18932});
 
 	// Begin the testcase.
-	struct lro_ctrl lc;
-	tcp_lro_init(&lc);
-	lc.ifp = mockIfp.GetIfp();
 
 	// Send the two frames in sequence to tcp_lro_rx().  Test the return
 	// value from each call.
@@ -408,18 +398,13 @@ TEST_F(TcpLroTestSuite, TestIncrPureAck)
 	auto expected = pkt1
 	    .WithHeaderFields<Layer::L4>(incrAck(2889));
 
-
-	StrictMock<MockIfnet> mockIfp("mock", 0);
-	EXPECT_CALL(mockIfp, if_input(PacketMatcher(expected)))
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
 
 	// getmicrotime() is not called on a pure ACK
 	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
 
 	// Begin the testcase.
-	struct lro_ctrl lc;
-	tcp_lro_init(&lc);
-	lc.ifp = mockIfp.GetIfp();
 
 	// Send the two frames in sequence to tcp_lro_rx().  Test the return
 	// value from each call.

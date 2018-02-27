@@ -38,6 +38,9 @@ namespace SysUnit
 	public:
 		void SetUp();
 		void TearDown();
+
+		virtual void TestCaseSetUp();
+		virtual void TestCaseTearDown();
 	};
 }
 
