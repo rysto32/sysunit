@@ -32,6 +32,7 @@
 
 #include "pktgen/Ethernet.h"
 #include "pktgen/Ipv4.h"
+#include "pktgen/Ipv6.h"
 #include "pktgen/PacketPayload.h"
 #include "pktgen/Tcp.h"
 
@@ -576,4 +577,68 @@ TcpLroTestSuite::TestOutOfOrder(const PktTemplate & pkt1, const PktTemplate & pk
 	ret = tcp_lro_rx(&lc, m, 0);
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
 	m_freem(m);
+}
+
+// Generate a single TCP/IPv4 packet and send it through tcp_lro_rx().  Verify
+// that the packet is passed to if_input(), and that it's unmodified.
+TEST_F(TcpLroTestSuite, TestSingleTcp6)
+{
+	// Create a packet template.  This template describes a TCP/IP packet
+	// with a payload of 7 nul (0x00) bytes.  The mbuf will have flags set
+	// to indicate that hardware checksum offload verified the L3/L4
+	// and the checksums passed the check.
+	// The type is described as "auto" as writing out the actual type would
+	// be infeasible due to the heavy use of C++ templates in the packet
+	// template API.
+	auto pktTemplate = PacketTemplate(
+	    EthernetHeader()
+	        .With(
+		    src("00:35:59:25:ea:90"),
+		    dst("25:36:49:49:36:25")
+		),
+	     Ipv6Header()
+	        .With(
+	            src("05:58::87:32:44"),
+		    dst("30::01")
+		 ),
+	    TcpHeader()
+	        .With(
+		    src(11965),
+		    dst(54321),
+		    checksumVerified(),
+		    checksumPassed()
+		),
+	    PacketPayload()
+	        .With(
+		    payload(0x00, 7)
+		 )
+	);
+
+	// Initialize mocks.  Mocks are used to implement kernel APIs depended
+	// on by the code being tested.
+
+	// Inform the mock that we expect tcp_lro to pass in a packet matching out
+	// template exactly once.  The test will fail if if_input() is not called
+	// exactly 1 time, or if it is called but with a packet that does not match
+	// the template.
+	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pktTemplate)))
+	    .Times(1);
+
+	// The MockTime interface is used to implement time-based APIs.  In this
+	// case it's used for its implementation of getmicrotime().
+	// Inform the mock to expect a single call to getmicrotime(), and specify the
+	// value that will be returned to the code under test when it's called.
+	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
+
+	// Test setup is complete.  The code that follows is the actual test case.
+
+	// Pass an mbuf based on our template to tcp_lro_rx(), and test the return
+	// value to confirm that tcp_lro_rx() accepted the mbuf.
+	int ret = tcp_lro_rx(&lc, pktTemplate.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	// Flush tcp_lro.  This should cause the mbuf input above to be flushed
+	// and sent to if_input(), at which point the mockIfp will see it and verify
+	// that the packet made it through tcp_lro without being modified.
+	tcp_lro_flush_all(&lc);
 }
