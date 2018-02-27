@@ -89,6 +89,14 @@ namespace PktGen
 		typedef NestedLayer::L3<1> L3;
 		typedef NestedLayer::L4<1> L4;
 		typedef NestedLayer::PAYLOAD<1> PAYLOAD;
+
+		typedef NestedLayer::L2<1> OUTER_L2;
+		typedef NestedLayer::L3<1> OUTER_L3;
+		typedef NestedLayer::L4<1> OUTER_L4;
+
+		typedef NestedLayer::L2<-1> INNER_L2;
+		typedef NestedLayer::L3<-1> INNER_L3;
+		typedef NestedLayer::L4<-1> INNER_L4;
 	};
 
 	template <int l2Nest = 0, int l3Nest = 0, int l4Nest = 0, int payloadNest = 0>
