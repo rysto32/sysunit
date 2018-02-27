@@ -93,6 +93,9 @@ public:
 		tcp_lro_free(&lc);
 		mockIfp.reset();
 	}
+
+	template <typename PktTemplate>
+	void TestOutOfOrder(const PktTemplate & pkt1, const PktTemplate & pkt2);
 };
 
 // Generate a single TCP/IPv4 packet and send it through tcp_lro_rx().  Verify
@@ -487,24 +490,7 @@ TEST_F(TcpLroTestSuite, TestOoOBackwards)
 	// This is the first packet that will be sent to LRO.
 	auto pkt1 = pkt2.Next();
 
-	// The first packet should be flushed by LRO immediately when
-	// it sees the second, out-of-order packet.
-	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pkt1)))
-	    .Times(1);
-
-	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
-
-	// Begin the testcase.
-
-	// Send the two frames in sequence to tcp_lro_rx().  Test the return
-	// value from each call.
-	int ret = tcp_lro_rx(&lc, pkt1.Generate(), 0);
-	ASSERT_EQ(ret, 0);
-
-	struct mbuf * m = pkt2.Generate();
-	ret = tcp_lro_rx(&lc, m, 0);
-	ASSERT_EQ(ret, TCP_LRO_CANNOT);
-	m_freem(m);
+	TestOutOfOrder(pkt1, pkt2);
 }
 
 // Test the reception of out-of-order packets where the TCP sequence
@@ -519,12 +505,19 @@ TEST_F(TcpLroTestSuite, TestOoOSkipSeq)
 	// We skip over one packet in the sequence by calling Next() twice.
 	auto pkt2 = pkt1.Next().Next();
 
+	TestOutOfOrder(pkt1, pkt2);
+}
+
+template <typename PktTemplate>
+void
+TcpLroTestSuite::TestOutOfOrder(const PktTemplate & pkt1, const PktTemplate & pkt2)
+{
 	// The first packet should be flushed by LRO immediately when
 	// it sees the second, out-of-order packet.
 	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pkt1)))
 	    .Times(1);
 
-	MockTime::ExpectGetMicrotime({.tv_sec = 89952, .tv_usec = 17935});
+	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 25847});
 
 	// Begin the testcase.
 
