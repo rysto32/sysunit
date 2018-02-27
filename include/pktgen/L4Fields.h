@@ -31,16 +31,6 @@
 
 namespace PktGen
 {
-	auto inline srcPort(uint16_t x)
-	{
-		return [x](auto & h) { h.SetSrcPort(x); };
-	}
-
-	auto inline dstPort(uint16_t x)
-	{
-		return [x](auto & h) { h.SetDstPort(x); };
-	}
-
 	auto inline seq(uint32_t x)
 	{
 		return [x](auto & h) { h.SetSeq(x); };

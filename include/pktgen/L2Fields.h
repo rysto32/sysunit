@@ -33,14 +33,16 @@
 
 namespace PktGen
 {
-	auto inline dstMac(const EtherAddr & a)
+	template <typename Addr>
+	auto inline src(const Addr & x)
 	{
-		return [a](auto & h) { h.SetDstAddr(a); };
+		return [x](auto & h) { h.SetSrc(x); };
 	}
 
-	auto inline srcMac(const EtherAddr & a)
+	template <typename Addr>
+	auto inline dst(const Addr & x)
 	{
-		return [a](auto & h) { h.SetSrcAddr(a); };
+		return [x](auto & h) { h.SetDst(x); };
 	}
 
 	auto inline ethertype(uint16_t t)

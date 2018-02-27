@@ -123,7 +123,7 @@ namespace PktGen
 			return th_sport;
 		}
 
-		void SetSrcPort(uint16_t x)
+		void SetSrc(uint16_t x)
 		{
 			th_sport = x;
 		}
@@ -133,7 +133,7 @@ namespace PktGen
 			return th_dport;
 		}
 
-		void SetDstPort(uint16_t x)
+		void SetDst(uint16_t x)
 		{
 			th_dport = x;
 		}

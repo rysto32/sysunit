@@ -83,12 +83,12 @@ namespace PktGen {
 			return ethertype;
 		}
 
-		void SetSrcAddr(const EtherAddr & a)
+		void SetSrc(const EtherAddr & a)
 		{
 			src = a;
 		}
 
-		void SetDstAddr(const EtherAddr & a)
+		void SetDst(const EtherAddr & a)
 		{
 			dst = a;
 		}

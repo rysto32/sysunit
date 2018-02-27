@@ -66,16 +66,6 @@ namespace PktGen
 		return [x](auto & h) { h.SetChecksum(x); };
 	}
 
-	auto inline srcIp(const Ipv4Addr & x)
-	{
-		return [x](auto & h) { h.SetSrc(x); };
-	}
-
-	auto inline dstIp(const Ipv4Addr & x)
-	{
-		return [x](auto & h) { h.SetDst(x); };
-	}
-
 	auto inline checksumVerified(bool verified = true)
 	{
 		return [verified] (auto & h) { h.SetChecksumVerified(verified); };

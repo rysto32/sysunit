@@ -112,20 +112,20 @@ TEST_F(TcpLroTestSuite, TestSingleTcp4)
 	auto pktTemplate = PacketTemplate(
 	    EthernetHeader()
 	        .With(
-		    srcMac("00:35:59:25:ea:90"),
-		    dstMac("25:36:49:49:36:25")
+		    src("00:35:59:25:ea:90"),
+		    dst("25:36:49:49:36:25")
 		),
 	     Ipv4Header()
 	        .With(
-	            srcIp("192.168.1.1"),
-		    dstIp("192.168.1.10"),
+	            src("192.168.1.1"),
+		    dst("192.168.1.10"),
 		    checksumVerified(),
 		    checksumPassed()
 		 ),
 	    TcpHeader()
 	        .With(
-		    srcPort(11965),
-		    dstPort(54321),
+		    src(11965),
+		    dst(54321),
 		    checksumVerified(),
 		    checksumPassed()
 		),
@@ -171,20 +171,20 @@ static auto GetTcpTemplate()
 	return PacketTemplate(
 	    EthernetHeader()
 	        .With(
-		    srcMac("02:f0:e0:d0:c0:b0"),
-		    dstMac("02:05:04:0c:02:01")
+		    src("02:f0:e0:d0:c0:b0"),
+		    dst("02:05:04:0c:02:01")
 		),
 	     Ipv4Header()
 	        .With(
-	            srcIp("1.25.37.187"),
-		    dstIp("57.8.9.63"),
+	            src("1.25.37.187"),
+		    dst("57.8.9.63"),
 		    checksumVerified(),
 		    checksumPassed()
 		 ),
 	    TcpHeader()
 	        .With(
-		    srcPort(6995),
-		    dstPort(123),
+		    src(6995),
+		    dst(123),
 		    checksumVerified(),
 		    checksumPassed()
 		)
