@@ -38,11 +38,6 @@ extern "C" {
 
 using testing::MatchResultListener;
 
-bool operator!=(in_addr a, in_addr b)
-{
-	return a.s_addr != b.s_addr;
-}
-
 namespace PktGen
 {
 	Ipv4Matcher::Ipv4Matcher(UnnestedIpv4Template && h, size_t offset)
