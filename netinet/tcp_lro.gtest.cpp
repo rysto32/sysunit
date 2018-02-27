@@ -249,6 +249,63 @@ TEST_F(TcpLroTestSuite, TestMerge2Tcp4)
 	tcp_lro_flush_all(&lc);
 }
 
+// Send a packet to be queued in tcp_lro, then call tcp_lro_flush_inactive
+// before the timeout has expired, and verify that tcp_lro continues to
+// hold the packet.  Then call tcp_lro_flush after the timeout has expired
+// and verify that the packet is sent to if_input at that time.
+TEST_F(TcpLroTestSuite, TestFlushInactive)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("abcd", 100));
+
+	struct timeval timeout = { .tv_sec = 0, .tv_usec = 150 };
+
+	{
+		InSequence seq;
+
+		// This call will be from tcp_lro_rx() when it timestamps the
+		// arrival of the packet.  Note that the time that the LRO
+		// code sees is completely controlled by the mock.  Any amount
+		// of time can pass between getmicrotime() calls and the LRO
+		// code will see the time delta between calls as always being
+		// consistent.  This is the advantage of mocking out calls to
+		// get the current time.  If you tried to force the test to take
+		// exactly 100us of real time between each call, a fast machine
+		// would waste time and a slow machine might take too long
+		// between calls and have the test fail intermittently.
+		MockTime::ExpectGetMicrotime({.tv_sec = 127, .tv_usec = 100});
+
+		// This call will be from the first call to tcp_lro_flush_inactive()
+		// Because the time difference between the arrival time and the
+		// flush time is less than the timeout value, the packet will
+		// not be flushed.
+		MockTime::ExpectGetMicrotime({.tv_sec = 127, .tv_usec = 200});
+
+		// This call will be from the second call to tcp_lro_flush_inactive()
+		// Now enough time will have been elapsed for the timeout to have
+		// expired, and the packet will be sent to if_input
+		MockTime::ExpectGetMicrotime({.tv_sec = 127, .tv_usec = 300});
+
+		// We require that the call to if_input() must happen after the
+		// timeout period has passed.  This enforced through the use of
+		// the InSequence sequence.  The test will fail if the if_input()
+		// call preceeds any other mock call in the sequence.
+		EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pkt1)))
+		    .Times(1);
+	}
+
+	// Begin the testcase.
+
+	int ret = tcp_lro_rx(&lc, pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	// This call will occur before the timeout and will not flush the packet.
+	tcp_lro_flush_inactive(&lc, &timeout);
+
+	// This call will flush the packet.
+	tcp_lro_flush_inactive(&lc, &timeout);
+}
+
 // Send a pure ACK from a TCP/IPv4 flow followed by a data frame.  Verify that
 // tcp_lro merges the two packets into a a single frame.
 TEST_F(TcpLroTestSuite, TestMergeAckData)
