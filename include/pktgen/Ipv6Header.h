@@ -52,6 +52,7 @@ namespace PktGen
 	class Ipv6Template
 	{
 	private:
+		uint8_t ipv6_version;
 		uint8_t ipv6_class;
 		uint32_t ipv6_flow;
 		uint16_t ipv6_plen;
@@ -79,7 +80,8 @@ namespace PktGen
 		};
 
 		Ipv6Template()
-		  : ipv6_class(0),
+		  : ipv6_version(6),
+		    ipv6_class(0),
 		    ipv6_flow(0),
 		    ipv6_plen(0),
 		    ipv6_nxt(0),
@@ -89,7 +91,8 @@ namespace PktGen
 
 		template <typename U>
 		explicit Ipv6Template(const Ipv6Template<U> & t)
-		  : ipv6_class(t.GetClass()),
+		  : ipv6_version(t.GetVersion()),
+		    ipv6_class(t.GetClass()),
 		    ipv6_flow(t.GetFlow()),
 		    ipv6_plen(t.GetPayloadLength()),
 		    ipv6_nxt(t.GetProto()),
@@ -97,6 +100,16 @@ namespace PktGen
 		    ipv6_src(t.GetSrc()),
 		    ipv6_dst(t.GetDst())
 		{
+		}
+
+		uint8_t GetVersion() const
+		{
+			return ipv6_version;
+		}
+
+		void SetVersion(uint8_t v)
+		{
+			ipv6_version = v;
 		}
 
 		auto GetClass() const
@@ -185,7 +198,7 @@ namespace PktGen
 
 			ip6->ip6_flow = ipv6_flow & IPV6_FLOWINFO_MASK;
 			ip6->ip6_vfc = (ip6->ip6_vfc & ~IPV6_VERSION_MASK) |
-				(IPV6_VERSION & IPV6_VERSION_MASK) |
+				((ipv6_version << 4) & IPV6_VERSION_MASK) |
 				(ipv6_class & 0x0f);
 			ip6->ip6_nxt = hton(ipv6_nxt);
 			ip6->ip6_hlim = hton(ipv6_hlim);

@@ -96,7 +96,7 @@ public:
 	}
 
 	template <typename PktTemplate>
-	void TestOutOfOrder(const PktTemplate & pkt1, const PktTemplate & pkt2);
+	void TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2);
 };
 
 // Generate a single TCP/IPv4 packet and send it through tcp_lro_rx().  Verify
@@ -491,7 +491,7 @@ TEST_F(TcpLroTestSuite, TestOoOBackwards)
 	// This is the first packet that will be sent to LRO.
 	auto pkt1 = pkt2.Next();
 
-	TestOutOfOrder(pkt1, pkt2);
+	TestRejectSecond(pkt1, pkt2);
 }
 
 // Test the reception of out-of-order packets where the TCP sequence
@@ -506,7 +506,7 @@ TEST_F(TcpLroTestSuite, TestOoOSkipSeq)
 	// We skip over one packet in the sequence by calling Next() twice.
 	auto pkt2 = pkt1.Next().Next();
 
-	TestOutOfOrder(pkt1, pkt2);
+	TestRejectSecond(pkt1, pkt2);
 }
 
 // Test the reception of out-of-order packets where LRO sees the same sequence
@@ -520,7 +520,7 @@ TEST_F(TcpLroTestSuite, TestOoODupSeq)
 	// Create a duplicate packet with the ip id incremented.
 	auto pkt2 = pkt1.WithHeaderFields<Layer::L3>(incrId(+1));
 
-	TestOutOfOrder(pkt1, pkt2);
+	TestRejectSecond(pkt1, pkt2);
 }
 
 // Test the reception of out-of-order packets where LRO sees the a frame with
@@ -536,7 +536,7 @@ TEST_F(TcpLroTestSuite, TestOoOSeqInPrev)
 	// range of the previous frame.
 	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::L4>(incrSeq(-1));
 
-	TestOutOfOrder(pkt1, pkt2);
+	TestRejectSecond(pkt1, pkt2);
 }
 
 // Test the reception of out-of-order packets where LRO sees the a frame with
@@ -552,15 +552,37 @@ TEST_F(TcpLroTestSuite, TestOoOSeqOffByOne)
 	// the previous frame.
 	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::L4>(incrSeq(+1));
 
-	TestOutOfOrder(pkt1, pkt2);
+	TestRejectSecond(pkt1, pkt2);
+}
+
+TEST_F(TcpLroTestSuite, TestBadIpVersion)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+
+	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::L3>(ipVersion(5));
+
+	TestRejectSecond(pkt1, pkt2);
+}
+
+TEST_F(TcpLroTestSuite, TestBadIpHeaderLen)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+
+	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::L3>(headerLength(3));
+
+	TestRejectSecond(pkt1, pkt2);
+
+	tcp_lro_flush_all(&lc);
 }
 
 template <typename PktTemplate>
 void
-TcpLroTestSuite::TestOutOfOrder(const PktTemplate & pkt1, const PktTemplate & pkt2)
+TcpLroTestSuite::TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2)
 {
 	// The first packet should be flushed by LRO immediately when
-	// it sees the second, out-of-order packet.
+	// it sees the second invalid packet.
 	EXPECT_CALL(*mockIfp, if_input(PacketMatcher(pkt1)))
 	    .Times(1);
 

@@ -33,6 +33,16 @@
 
 namespace PktGen
 {
+	auto inline ipVersion(uint8_t x)
+	{
+		return [x] (auto & h) { h.SetVersion(x); };
+	}
+
+	auto inline headerLength(uint8_t x)
+	{
+		return [x] (auto & h) { h.SetHeaderLen(x); };
+	}
+
 	auto inline tos(uint8_t x)
 	{
 		return [x](auto & h) { h.SetTos(x); };

@@ -97,7 +97,7 @@ namespace PktGen
 		auto * ip6 = GetMbufHeader<ip6_hdr>(m, headerOffset);
 
 		CheckField(ip6->ip6_vfc & 0xfU, header.GetClass(), "ip6_class");
-		CheckField(ip6->ip6_vfc & uint32_t(IPV6_VERSION_MASK), IPV6_VERSION, "ip6_version");
+		CheckField((ip6->ip6_vfc & uint32_t(IPV6_VERSION_MASK)) >> 4, header.GetVersion(), "ip6_version");
 		CheckField(ip6->ip6_flow & uint32_t(IPV6_FLOWINFO_MASK), header.GetFlow(), "ip6_flow");
 		CheckField(ntoh(ip6->ip6_plen), header.GetPayloadLength(), "ip6_plen");
 		CheckField(ntoh(ip6->ip6_nxt), header.GetProto(), "ip6_nxt");

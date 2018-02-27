@@ -53,6 +53,7 @@ namespace PktGen
 	{
 	private:
 		uint8_t headerLen;
+		uint8_t version;
 		uint8_t tos;
 		uint16_t id;
 		uint16_t off;
@@ -86,6 +87,7 @@ namespace PktGen
 
 		Ipv4Template()
 		  : headerLen(sizeof(struct ip) / sizeof(uint32_t)),
+		    version(4),
 		    tos(0),
 		    id(0),
 		    off(0),
@@ -101,6 +103,7 @@ namespace PktGen
 		template <typename U>
 		explicit Ipv4Template(const Ipv4Template<U> & h)
 		  : headerLen(h.GetHeaderLen()),
+		    version(h.GetVersion()),
 		    tos(h.GetTos()),
 		    id(h.GetId()),
 		    off(h.GetOff()),
@@ -118,6 +121,21 @@ namespace PktGen
 		uint8_t GetHeaderLen() const
 		{
 			return headerLen;
+		}
+
+		void SetHeaderLen(uint8_t x)
+		{
+			headerLen = x;
+		}
+
+		uint8_t GetVersion() const
+		{
+			return version;
+		}
+
+		void SetVersion(uint8_t v)
+		{
+			version = v;
 		}
 
 		uint8_t GetTos() const
@@ -235,7 +253,7 @@ namespace PktGen
 			auto * ip = GetMbufHeader<struct ip>(m, offset);
 
 			ip->ip_hl = hton(headerLen);
-			ip->ip_v = 4;
+			ip->ip_v = hton(version);
 
 			ip->ip_tos = hton(tos);
 			ip->ip_len = hton(ipLen);
@@ -259,7 +277,7 @@ namespace PktGen
 
 		size_t GetLen() const
 		{
-			return headerLen * sizeof(uint32_t);
+			return sizeof(struct ip);
 		}
 
 		Ipv4Template Next() const

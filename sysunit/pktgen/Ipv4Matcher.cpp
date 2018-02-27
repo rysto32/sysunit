@@ -59,7 +59,7 @@ namespace PktGen
 		auto * ip = GetMbufHeader<struct ip>(m, headerOffset);
 
 		CheckField(ip, ip_hl, header.GetHeaderLen());
-		CheckField(ip, ip_v, 4);
+		CheckField(ip, ip_v, header.GetVersion());
 		CheckField(ip, ip_tos, header.GetTos());
 		CheckField(ip, ip_len, header.GetIpLen());
 		CheckField(ip, ip_id, header.GetId());
