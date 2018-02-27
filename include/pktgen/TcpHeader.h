@@ -41,7 +41,8 @@ extern "C" {
 #include "pktgen/Layer.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/L4Fields.h"
-#include "pktgen/PacketPayloadTemplate.h"
+#include "pktgen/PayloadLength.h"
+#include "pktgen/PacketTemplates.h"
 
 namespace PktGen
 {
@@ -75,8 +76,8 @@ namespace PktGen
 			template <typename Header>
 			Header operator()(const Header & h, const TcpTemplate & t) const
 			{
-				return h.With(
-				    PayloadSizeField(t.GetLen() + t.payloadLength),
+				DefaultEncapFieldSetter setter;
+				return setter(h, t).template With(
 				    proto(t.GetIpProto())
 				);
 			}

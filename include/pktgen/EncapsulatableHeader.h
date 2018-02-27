@@ -30,15 +30,18 @@
 #define PKTGEN_ENCAPSULATABLE_HEADER_H
 
 #include "pktgen/EncapsulatedHeader.h"
+#include "pktgen/PayloadLength.h"
 
 namespace PktGen
 {
-	struct NullEncapFieldSetter
+	struct DefaultEncapFieldSetter
 	{
 		template <typename Lower, typename Upper>
-		Lower operator()(const Lower & l, const Upper &) const
+		Lower operator()(const Lower & l, const Upper & u) const
 		{
-			return l;
+			return l.With(
+			    PayloadLengthField(u.GetLen())
+			);
 		}
 	};
 

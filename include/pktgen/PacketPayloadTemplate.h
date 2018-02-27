@@ -34,89 +34,13 @@
 #include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Layer.h"
 #include "pktgen/PacketTemplates.h"
+#include "pktgen/PayloadLength.h"
 
 #include <stdint.h>
 #include <vector>
 
 namespace PktGen
 {
-	template <typename Header>
-	class PayloadLengthSetter
-	{
-	public:
-		void operator()(Header & h, size_t length) const
-		{
-			h.SetPayloadLength(length);
-		}
-	};
-
-	class PayloadLengthGenerator
-	{
-	private:
-		size_t length;
-	public:
-		PayloadLengthGenerator(size_t l = 0)
-		  : length(l)
-		{
-		}
-
-		template <typename Header>
-		Header Apply(Header h)
-		{
-			PayloadLengthSetter<Header> setter;
-
-			setter(h, length);
-
-			length += h.GetLen();
-			return h;
-		}
-	};
-
-	template <typename Setter>
-	class PayloadField
-	{
-		std::vector<uint8_t> payload;
-		Setter setter;
-
-	public:
-		PayloadField(std::vector<uint8_t> && p, Setter s)
-		  : payload(p),
-		    setter(s)
-		{
-		}
-
-		typedef PayloadLengthGenerator DownwardFieldGenerator;
-		typedef DownwardFieldGenerator ApplyReturn;
-
-		template <typename Header>
-		ApplyReturn operator()(Header & h) const
-		{
-			setter(h, payload);
-			return DownwardFieldGenerator(h.GetLen());
-		}
-	};
-
-	class PayloadSizeField
-	{
-		size_t size;
-
-	public:
-		PayloadSizeField(size_t s)
-		  : size(s)
-		{
-		}
-
-		typedef PayloadLengthGenerator DownwardFieldGenerator;
-		typedef DownwardFieldGenerator ApplyReturn;
-
-		template <typename Header>
-		ApplyReturn operator()(Header & h) const
-		{
-			h.SetPayloadLength(size);
-			return DownwardFieldGenerator(h.GetLen() + size);
-		}
-	};
-
 	typedef std::vector<uint8_t> PayloadVector;
 
 	template <typename Nesting>
@@ -130,16 +54,7 @@ namespace PktGen
 		typedef typename NESTING_LEVEL::PAYLOAD LAYER;
 		typedef PayloadTemplate<Nesting> SelfType;
 
-		struct EncapFieldSetter
-		{
-			template <typename Header>
-			Header operator()(const Header & h, const PayloadTemplate & t) const
-			{
-				return h.With(
-				    PayloadSizeField(t.GetLen())
-				);
-			}
-		};
+		typedef DefaultEncapFieldSetter EncapFieldSetter;
 
 		PayloadTemplate() = default;
 

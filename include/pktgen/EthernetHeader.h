@@ -53,8 +53,7 @@ namespace PktGen {
 		typedef typename Nesting::NextL2 NESTING_LEVEL;
 		typedef typename NESTING_LEVEL::L2 LAYER;
 
-		// This is to appease EncapsulatableHeader
-		typedef NullEncapFieldSetter EncapFieldSetter;
+		typedef DefaultEncapFieldSetter EncapFieldSetter;
 
 		EthernetTemplate()
 		  : ethertype(0)

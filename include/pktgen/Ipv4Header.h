@@ -43,7 +43,8 @@ extern "C" {
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
-#include "pktgen/PacketPayloadTemplate.h"
+#include "pktgen/PayloadLength.h"
+#include "pktgen/PacketTemplates.h"
 
 namespace PktGen
 {
@@ -76,9 +77,9 @@ namespace PktGen
 			template <typename Header>
 			Header operator()(const Header & h, const Ipv4Template & t) const
 			{
-				return h.template With(
-				    ethertype(GetEthertype()),
-				    PayloadSizeField(t.ipLen)
+				DefaultEncapFieldSetter setter;
+				return setter(h, t).template With(
+				    ethertype(GetEthertype())
 				);
 			}
 		};
