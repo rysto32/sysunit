@@ -138,6 +138,12 @@ namespace PktGen {
 		void print(int depth)
 		{
 			PrintIndent(depth, "Ether : {");
+			PrintIndent(depth + 1, "dst : %02x:%02x:%02x:%02x:%02x:%02x",
+			    dst.GetAddr()[0], dst.GetAddr()[1], dst.GetAddr()[2],
+			    dst.GetAddr()[3], dst.GetAddr()[4], dst.GetAddr()[5]);
+			PrintIndent(depth + 1, "src : %02x:%02x:%02x:%02x:%02x:%02x",
+			    src.GetAddr()[0], src.GetAddr()[1], src.GetAddr()[2],
+			    src.GetAddr()[3], src.GetAddr()[4], src.GetAddr()[5]);
 			PrintIndent(depth + 1, "etype : %#x", ethertype);
 			PrintIndent(depth, "}");
 		}
