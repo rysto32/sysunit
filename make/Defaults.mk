@@ -19,3 +19,5 @@ C_ONLY_FLAGS := -I$(TOPDIR)/include/kern_include -nostdinc \
     -Wno-format-invalid-specifier -Wno-format
 
 CXXFLAGS:=$(CXX_STD) $(CXX_WARNFLAGS)
+
+LDFLAGS := -Wl,-L,/usr/local/lib
