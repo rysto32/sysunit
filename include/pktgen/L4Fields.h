@@ -46,12 +46,17 @@ namespace PktGen
 		return [x](auto & h) { h.SetSeq(x); };
 	}
 
+	auto inline incrSeq(int32_t x)
+	{
+		return [x](auto & h) { h.SetSeq(h.GetSeq() + x); };
+	}
+
 	auto inline ack(uint32_t x)
 	{
 		return [x](auto & h) { h.SetAck(x); };
 	}
 
-	auto inline incrAck(uint32_t x)
+	auto inline incrAck(int32_t x)
 	{
 		return [x](auto & h) { h.SetAck(h.GetAck() + x); };
 	}

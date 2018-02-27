@@ -508,6 +508,52 @@ TEST_F(TcpLroTestSuite, TestOoOSkipSeq)
 	TestOutOfOrder(pkt1, pkt2);
 }
 
+// Test the reception of out-of-order packets where LRO sees the same sequence
+// number twice.  Verify that the queued packet is immediately flushed up the
+// stack while the second, out-of-order packet is rejected by LRO.
+TEST_F(TcpLroTestSuite, TestOoODupSeq)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+
+	// Create a duplicate packet with the ip id incremented.
+	auto pkt2 = pkt1.WithHeaderFields<Layer::L3>(incrId(+1));
+
+	TestOutOfOrder(pkt1, pkt2);
+}
+
+// Test the reception of out-of-order packets where LRO sees the a frame with
+// a sequence number in the middle of the previous frame.  Verify that the
+// queued packet is immediately flushed up the stack while the second, out-of-
+// order packet is rejected by LRO.
+TEST_F(TcpLroTestSuite, TestOoOSeqInPrev)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+
+	// Create a packet with a sequence number in the middle of the
+	// range of the previous frame.
+	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::L4>(incrSeq(-1));
+
+	TestOutOfOrder(pkt1, pkt2);
+}
+
+// Test the reception of out-of-order packets where LRO sees the a frame with
+// a sequence number that is one larger than the next in sequence.  Verify that the
+// queued packet is immediately flushed up the stack while the second, out-of-
+// order packet is rejected by LRO.
+TEST_F(TcpLroTestSuite, TestOoOSeqOffByOne)
+{
+	auto pkt1 = GetPayloadTemplate()
+	    .WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+
+	// Create a packet with a sequence number one past the end of
+	// the previous frame.
+	auto pkt2 = pkt1.Next().WithHeaderFields<Layer::L4>(incrSeq(+1));
+
+	TestOutOfOrder(pkt1, pkt2);
+}
+
 template <typename PktTemplate>
 void
 TcpLroTestSuite::TestOutOfOrder(const PktTemplate & pkt1, const PktTemplate & pkt2)
@@ -531,4 +577,3 @@ TcpLroTestSuite::TestOutOfOrder(const PktTemplate & pkt1, const PktTemplate & pk
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
 	m_freem(m);
 }
-

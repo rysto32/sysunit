@@ -43,6 +43,14 @@ namespace PktGen
 		return [x](auto & h) { h.SetId(x); };
 	}
 
+	auto inline incrId(uint32_t x)
+	{
+		return [x] (auto & h)
+		{
+			h.SetId(h.GetId() + x);
+		};
+	}
+
 	auto inline ttl(uint8_t x)
 	{
 		return [x](auto & h) { h.SetTtl(x); };
