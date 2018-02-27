@@ -75,6 +75,21 @@ namespace PktGen
 	{
 		return [valid] (auto & h) { h.SetChecksumPassed(valid); };
 	}
+
+	auto inline trafficClass(uint8_t x)
+	{
+		return [x] (auto & h) { h.SetClass(x); };
+	}
+
+	auto inline flow(uint32_t x)
+	{
+		return [x] (auto & h) { h.SetFlow(x); };
+	}
+
+	auto inline hopLimit(uint8_t x)
+	{
+		return [x] (auto & h) { h.SetHopLimit(x); };
+	}
 }
 
 #endif

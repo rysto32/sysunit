@@ -26,37 +26,48 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_PACKET_TEMPLATES_H
-#define PKTGEN_PACKET_TEMPLATES_H
+#include "pktgen/Ipv6Addr.h"
 
-#include "pktgen/Layer.h"
+#include <arpa/inet.h>
+
+#include <cstring>
+#include <stdexcept>
+
+std::ostream & operator<<(std::ostream & os, struct in6_addr a)
+{
+	return os << PktGen::Ipv6Addr(a);
+}
 
 namespace PktGen
 {
-	template <typename Nesting>
-	class EthernetTemplate;
+	std::ostream & operator<<(std::ostream & os, const PktGen::Ipv6Addr & a)
+	{
+		return os << a.ToString();
+	}
 
-	typedef EthernetTemplate<DefaultNestingLevel> UnnestedEthernetTemplate;
+	Ipv6Addr::Ipv6Addr(const char *ip6)
+	{
+		int success;
 
-	template <typename Nesting>
-	class Ipv4Template;
+		success = inet_pton(AF_INET6, ip6, &addr);
+		if (success != 1) {
+			throw std::runtime_error("inet_pton(AF_INET6) failed");
+		}
+	}
 
-	typedef Ipv4Template<DefaultNestingLevel> UnnestedIpv4Template;
+	bool Ipv6Addr::operator==(const Ipv6Addr & rhs) const
+	{
+		return std::memcmp(&addr, &rhs.addr, sizeof(addr)) == 0;
+	}
 
-	template <typename Nesting>
-	class Ipv6Template;
+	std::string Ipv6Addr::ToString() const
+	{
+		char addrStr[INET6_ADDRSTRLEN];
+		const char * str = inet_ntop(AF_INET6, &addr, addrStr, sizeof(addr));
 
-	typedef Ipv6Template<DefaultNestingLevel> UnnestedIpv6Template;
+		if (str == NULL)
+			throw std::runtime_error("inet_ntop(AF_INET6) failed");
 
-	template <typename Nesting>
-	class TcpTemplate;
-
-	typedef TcpTemplate<DefaultNestingLevel> UnnestedTcpTemplate;
-
-	template <typename Nesting>
-	class PayloadTemplate;
-
-	typedef PayloadTemplate<DefaultNestingLevel> UnnestedPayloadTemplate;
+		return str;
+	}
 }
-
-#endif

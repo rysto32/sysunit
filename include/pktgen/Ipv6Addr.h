@@ -26,37 +26,57 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_PACKET_TEMPLATES_H
-#define PKTGEN_PACKET_TEMPLATES_H
+#ifndef PKTGEN_IPV6_ADDR_H
+#define PKTGEN_IPV6_ADDR_H
 
-#include "pktgen/Layer.h"
+extern "C" {
+#include <kern_include/sys/types.h>
+#include <kern_include/sys/socket.h>
+#include <kern_include/netinet/in.h>
+#include <kern_include/netinet/ip6.h>
+}
+
+#include <ostream>
+#include <string>
+
+std::ostream & operator<<(std::ostream & os, struct in6_addr a);
 
 namespace PktGen
 {
-	template <typename Nesting>
-	class EthernetTemplate;
+	class Ipv6Addr
+	{
+	private:
+		struct in6_addr addr;
 
-	typedef EthernetTemplate<DefaultNestingLevel> UnnestedEthernetTemplate;
+	public:
+		Ipv6Addr()
+		  : addr({})
+		{
+		}
 
-	template <typename Nesting>
-	class Ipv4Template;
+		Ipv6Addr(struct in6_addr a)
+		  : addr(a)
+		{
+		}
 
-	typedef Ipv4Template<DefaultNestingLevel> UnnestedIpv4Template;
+		Ipv6Addr(const char *ip);
 
-	template <typename Nesting>
-	class Ipv6Template;
+		struct in6_addr GetAddr() const
+		{
+			return addr;
+		}
 
-	typedef Ipv6Template<DefaultNestingLevel> UnnestedIpv6Template;
+		bool operator==(const Ipv6Addr & rhs) const;
 
-	template <typename Nesting>
-	class TcpTemplate;
+		bool operator!=(const Ipv6Addr & rhs) const
+		{
+			return !(*this == rhs);
+		}
 
-	typedef TcpTemplate<DefaultNestingLevel> UnnestedTcpTemplate;
+		std::string ToString() const;
+	};
 
-	template <typename Nesting>
-	class PayloadTemplate;
-
-	typedef PayloadTemplate<DefaultNestingLevel> UnnestedPayloadTemplate;
+	std::ostream & operator<<(std::ostream & os, const PktGen::Ipv6Addr & a);
 }
 
 #endif
