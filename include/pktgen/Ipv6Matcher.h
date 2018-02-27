@@ -1,0 +1,62 @@
+/*-
+ * SPDX-License-Identifier: BSD-2-Clause
+ *
+ * Copyright (c) 2018 Ryan Stone
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+#ifndef PKTGEN_IPV6_MATCHER_H
+#define PKTGEN_IPV6_MATCHER_H
+
+#include <gmock/gmock-matchers.h>
+
+#include "pktgen/PacketTemplates.h"
+
+struct mbuf;
+
+namespace PktGen
+{
+	class Ipv6Matcher : public testing::MatcherInterface<mbuf*>
+	{
+	private:
+		UnnestedIpv6Template header;
+		size_t headerOffset;
+
+	public:
+		Ipv6Matcher(UnnestedIpv6Template && header, size_t off);
+
+		virtual bool MatchAndExplain(mbuf*,
+                    testing::MatchResultListener* listener) const override;
+
+		virtual void DescribeTo(::std::ostream* os) const override;
+	};
+
+	template <typename Nesting>
+	auto inline PacketMatcher(const Ipv6Template<Nesting> & t, size_t off)
+	{
+		return Ipv6Matcher(t.StripNesting(), off);
+	}
+}
+
+#endif
