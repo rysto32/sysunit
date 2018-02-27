@@ -33,64 +33,53 @@
 
 namespace PktGen
 {
+	enum class LayerVal
+	{
+		L2,
+		L3,
+		L4,
+		PAYLOAD
+	};
+
+	std::string MakeLayerName(LayerVal l, int n);
+
+	template <LayerVal Layer, int Nesting>
+	struct LayerImpl
+	{
+		static const LayerVal LAYER = Layer;
+		static const int NESTING = Nesting;
+
+		static std::string Name()
+		{
+			return MakeLayerName(Layer, Nesting);
+		}
+	};
+
 	namespace NestedLayer
 	{
-		std::string MakeName(const std::string & shortName, int nesting);
 
 		template <int Nesting>
 		struct L2
 		{
-			static std::string ShortName()
-			{
-				return "L2";
-			}
-
-			static std::string Name()
-			{
-				return MakeName(ShortName(), Nesting);
-			}
+			typedef LayerImpl<LayerVal::L2, Nesting> IMPL;
 		};
 
 		template <int Nesting>
 		struct L3
 		{
-			static std::string ShortName()
-			{
-				return "L3";
-			}
-
-			static std::string Name()
-			{
-				return MakeName(ShortName(), Nesting);
-			}
+			typedef LayerImpl<LayerVal::L3, Nesting> IMPL;
 		};
 
 		template <int Nesting>
 		struct L4
 		{
-			static std::string ShortName()
-			{
-				return "L4";
-			}
-
-			static std::string Name()
-			{
-				return MakeName(ShortName(), Nesting);
-			}
+			typedef LayerImpl<LayerVal::L4, Nesting> IMPL;
 		};
 
 		template <int Nesting>
 		struct PAYLOAD
 		{
-			static std::string ShortName()
-			{
-				return "PAYLOAD";
-			}
-
-			static std::string Name()
-			{
-				return MakeName(ShortName(), Nesting);
-			}
+			typedef LayerImpl<LayerVal::PAYLOAD, Nesting> IMPL;
 		};
 	}
 
@@ -105,10 +94,38 @@ namespace PktGen
 	template <int l2Nest = 0, int l3Nest = 0, int l4Nest = 0, int payloadNest = 0>
 	struct CurrentNesting
 	{
-		typedef NestedLayer::L2<l2Nest> L2;
-		typedef NestedLayer::L3<l3Nest> L3;
-		typedef NestedLayer::L4<l4Nest> L4;
-		typedef NestedLayer::PAYLOAD<payloadNest> PAYLOAD;
+		typedef typename NestedLayer::L2<l2Nest>::IMPL L2;
+		typedef typename NestedLayer::L3<l3Nest>::IMPL L3;
+		typedef typename NestedLayer::L4<l4Nest>::IMPL L4;
+		typedef typename NestedLayer::PAYLOAD<payloadNest>::IMPL PAYLOAD;
+
+		static constexpr int Depth(LayerVal l)
+		{
+			switch (l) {
+			case LayerVal::L2:
+				return l2Nest;
+			case LayerVal::L3:
+				return l3Nest;
+			case LayerVal::L4:
+				return l4Nest;
+			case LayerVal::PAYLOAD:
+				return payloadNest;
+			default:
+				return -1;
+			}
+		}
+
+		template <LayerVal layer, int depth>
+		static constexpr int ConvertInnerDepth()
+		{
+			return depth > 0 ? depth : Depth(layer) + depth + 1;
+		}
+
+		template <typename Layer>
+		static constexpr int ConvertInnerDepth()
+		{
+			return ConvertInnerDepth<Layer::IMPL::LAYER, Layer::IMPL::NESTING>();
+		}
 
 		typedef CurrentNesting<l2Nest + 1, l3Nest, l4Nest, payloadNest> NextL2;
 		typedef CurrentNesting<l2Nest, l3Nest + 1, l4Nest, payloadNest> NextL3;

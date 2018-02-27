@@ -52,6 +52,7 @@ namespace PktGen
 		Upper upper;
 
 		typedef EncapsulatedHeader<Lower, Upper> SelfType;
+
 	public:
 		typedef typename Upper::LAYER LAYER;
 		typedef typename Upper::NESTING_LEVEL NESTING_LEVEL;
@@ -98,20 +99,28 @@ namespace PktGen
 			return SelfType::Apply(f, With(args...));
 		}
 
-		template <typename layer, typename ... Fields>
-		typename std::enable_if<std::is_same<layer, LAYER>::value, SelfType>::type
-		WithHeaderFields(Fields... f) const
+		template <LayerVal layer, int Nesting, typename ... Fields>
+		typename std::enable_if<std::is_same<LayerImpl<layer, Nesting>, LAYER>::value, SelfType>::type
+		WithHeaderFieldsImpl(Fields... f) const
 		{
 			return With(f...);
 		}
 
-		template <typename layer, typename ... Fields>
-		typename std::enable_if<!std::is_same<layer, LAYER>::value, SelfType>::type
-		WithHeaderFields(Fields... f) const
+		template <LayerVal layer, int Nesting, typename ... Fields>
+		typename std::enable_if<!std::is_same<LayerImpl<layer, Nesting>, LAYER>::value, SelfType>::type
+		WithHeaderFieldsImpl(Fields... f) const
 		{
-			auto newLower(lower.template WithHeaderFields<layer>(f...));
+			auto newLower(lower.template WithHeaderFieldsImpl<layer, Nesting>(f...));
 
 			return SelfType(newLower, upper);
+		}
+
+		template <typename Layer, typename ... Fields>
+		SelfType WithHeaderFields(Fields... f) const
+		{
+			constexpr int nestDepth = NESTING_LEVEL::template ConvertInnerDepth<Layer>();
+
+			return WithHeaderFieldsImpl<Layer::IMPL::LAYER, nestDepth>(f...);
 		}
 
 		mbuf *Generate() const

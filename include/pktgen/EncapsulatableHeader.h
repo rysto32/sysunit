@@ -103,11 +103,19 @@ namespace PktGen
 			return Apply(f, With(a...));
 		}
 
-		template <typename layer, typename ... Fields>
-		typename std::enable_if<std::is_same<layer, LAYER>::value, SelfType>::type
-		WithHeaderFields(Fields... f) const
+		template <LayerVal layer, int Nesting, typename ... Fields>
+		typename std::enable_if<std::is_same<LayerImpl<layer, Nesting>, LAYER>::value, SelfType>::type
+		WithHeaderFieldsImpl(Fields... f) const
 		{
 			return With(f...);
+		}
+
+		template <typename Layer, typename ... Fields>
+		SelfType WithHeaderFields(Fields... f) const
+		{
+			constexpr int nestDepth = NESTING_LEVEL::template ConvertInnerDepth<Layer>();
+
+			return WithHeaderFieldsImpl<Layer::IMPL::LAYER, nestDepth>(f...);
 		}
 
 		template <typename Lower>

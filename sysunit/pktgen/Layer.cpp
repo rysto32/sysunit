@@ -31,13 +31,29 @@
 #include <sstream>
 #include <string>
 
-std::string PktGen::NestedLayer::MakeName(const std::string & shortName, int nesting)
+std::string PktGen::MakeLayerName(LayerVal l, int nesting)
 {
+	std::string shortName;
+
+	switch (l) {
+	case LayerVal::L2:
+		shortName = "L2";
+		break;
+	case LayerVal::L3:
+		shortName = "L3";
+		break;
+	case LayerVal::L4:
+		shortName = "L4";
+		break;
+	case LayerVal::PAYLOAD:
+		shortName = "PAYLOAD";
+		break;
+	}
+
 	if (nesting == 1)
 		return shortName;
 
 	std::ostringstream str;
-
 	str << shortName << "<" << nesting << ">";
 	return str.str();
 }
