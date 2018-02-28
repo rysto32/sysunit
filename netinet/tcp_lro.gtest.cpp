@@ -279,6 +279,9 @@ public:
 
 	template <typename PktTemplate>
 	void TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2);
+
+	template <typename PktTemplate>
+	PktTemplate NextIpFrame(const PktTemplate & pkt);
 };
 
 typedef std::invoke_result<decltype(Ipv4Header)>::type Ipv4TemplateType;
@@ -296,6 +299,13 @@ Ipv4TemplateType TcpLroTestSuite<Ipv4TemplateType>::GetNetworkLayerTemplate()
 	    );
 }
 
+template<>
+template <typename PktTemplate>
+PktTemplate TcpLroTestSuite<Ipv4TemplateType>::NextIpFrame(const PktTemplate & pkt)
+{
+	return pkt.WithHeader(Layer::L3).Fields(incrId(+1));
+}
+
 template <>
 Ipv6TemplateType TcpLroTestSuite<Ipv6TemplateType>::GetNetworkLayerTemplate()
 {
@@ -304,6 +314,15 @@ Ipv6TemplateType TcpLroTestSuite<Ipv6TemplateType>::GetNetworkLayerTemplate()
 	        src("05:58::87:32:44"),
 	        dst("30::01")
 	    );
+}
+
+template<>
+template <typename PktTemplate>
+PktTemplate TcpLroTestSuite<Ipv6TemplateType>::NextIpFrame(const PktTemplate & pkt)
+{
+	// IPv6 has no metadata like an id field to increment for each frame,
+	// so the next IPv6 in an IPv6 connection is the same as the last.
+	return pkt;
 }
 
 typedef ::testing::Types<Ipv4TemplateType, Ipv6TemplateType> NetworkTypes;
@@ -617,16 +636,16 @@ TYPED_TEST(TcpLroTestSuite, TestOoOSkipSeq)
 // Test the reception of out-of-order packets where LRO sees the same sequence
 // number twice.  Verify that the queued packet is immediately flushed up the
 // stack while the second, out-of-order packet is rejected by LRO.
-// TYPED_TEST(TcpLroTestSuite, TestOoODupSeq)
-// {
-// 	auto pkt1 = this->GetPayloadTemplate()
-// 	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
-//
-// 	// Create a duplicate packet with the ip id incremented.
-// 	auto pkt2 = pkt1.WithHeader(Layer::L3).Fields(incrId(+1));
-//
-// 	this->TestRejectSecond(pkt1, pkt2);
-// }
+TYPED_TEST(TcpLroTestSuite, TestOoODupSeq)
+{
+	auto pkt1 = this->GetPayloadTemplate()
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
+
+	// Create a duplicate packet with the ip id incremented.
+	auto pkt2 = this->NextIpFrame(pkt1);
+
+	this->TestRejectSecond(pkt1, pkt2);
+}
 
 // Test the reception of out-of-order packets where LRO sees the a frame with
 // a sequence number in the middle of the previous frame.  Verify that the
