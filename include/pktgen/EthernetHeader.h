@@ -46,6 +46,7 @@ namespace PktGen {
 		EtherAddr dst;
 		EtherAddr src;
 		uint16_t ethertype;
+		size_t payloadLength;
 
 		typedef EthernetTemplate<Nesting> SelfType;
 
@@ -98,7 +99,7 @@ namespace PktGen {
 			ethertype = t;
 		}
 
-		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
+		void FillPacket(mbuf * m, size_t & offset) const
 		{
 			auto * eh = GetMbufHeader<ether_header>(m, offset);
 
@@ -114,8 +115,14 @@ namespace PktGen {
 			return sizeof(struct ether_header);
 		}
 
-		void SetPayloadLength(size_t)
+		size_t GetPayloadLength() const
 		{
+			return payloadLength;
+		}
+
+		void SetPayloadLength(size_t len)
+		{
+			payloadLength = len;
 		}
 
 		SelfType Next() const

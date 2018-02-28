@@ -75,7 +75,7 @@ namespace PktGen
 				payload.push_back(ch);
 		}
 
-		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
+		void FillPacket(mbuf * m, size_t & offset) const
 		{
 			auto * pl = GetMbufHeader<uint8_t>(m, offset);
 
@@ -124,10 +124,6 @@ namespace PktGen
 			}
 
 			return p;
-		}
-
-		void SetPayloadLength(size_t)
-		{
 		}
 
 		void print(int depth)

@@ -126,21 +126,21 @@ namespace PktGen
 		mbuf *Generate() const
 		{
 			size_t parentOff;
-			return Generate(parentOff, 0);
+			return Generate(parentOff);
 		}
 
-		mbuf *Generate(size_t & offset, size_t parentLen) const
+		mbuf *Generate(size_t & offset) const
 		{
-			mbuf * m = lower.Generate(offset, parentLen + upper.GetLen());
-			upper.FillPacket(m, parentLen, offset);
+			mbuf * m = lower.Generate(offset);
+			upper.FillPacket(m, offset);
 
 			return m;
 		}
 
-		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
+		void FillPacket(mbuf * m, size_t & offset) const
 		{
-			lower.FillPacket(m, parentLen + upper.GetLen(), offset);
-			upper.FillPacket(m, parentLen, offset);
+			lower.FillPacket(m, offset);
+			upper.FillPacket(m, offset);
 		}
 
 		size_t GetLen() const

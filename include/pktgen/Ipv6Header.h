@@ -192,7 +192,7 @@ namespace PktGen
 			return ETHERTYPE_IPV6;
 		}
 
-		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
+		void FillPacket(mbuf * m, size_t & offset) const
 		{
 			auto * ip6 = GetMbufHeader<ip6_hdr>(m, offset);
 

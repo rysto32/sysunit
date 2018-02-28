@@ -136,24 +136,24 @@ namespace PktGen
 		mbuf *Generate() const
 		{
 			size_t parentOff;
-			return Generate(parentOff, 0);
+			return Generate(parentOff);
 		}
 
-		mbuf *Generate(size_t & offset, size_t parentLen) const
+		mbuf *Generate(size_t & offset) const
 		{
-			size_t mb_len = GetLen() + parentLen;
+			size_t mb_len = header.GetLen() + header.GetPayloadLength();
 			mbuf * m = alloc_mbuf(mb_len);
 			m->m_pkthdr.len = mb_len;
 			m->m_len = mb_len;
 
 			offset = 0;
-			FillPacket(m, parentLen, offset);
+			FillPacket(m, offset);
 			return m;
 		}
 
-		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
+		void FillPacket(mbuf * m, size_t & offset) const
 		{
-			header.FillPacket(m, parentLen, offset);
+			header.FillPacket(m, offset);
 		}
 
 		size_t GetLen() const

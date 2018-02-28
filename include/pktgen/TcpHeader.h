@@ -255,7 +255,7 @@ namespace PktGen
 			return copy;
 		}
 
-		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
+		void FillPacket(mbuf * m, size_t & offset) const
 		{
 			auto * tcp = GetMbufHeader<tcphdr>(m, offset);
 

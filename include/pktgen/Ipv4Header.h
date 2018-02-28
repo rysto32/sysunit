@@ -238,6 +238,11 @@ namespace PktGen
 			checksumPassed = v;
 		}
 
+		size_t GetPayloadLength() const
+		{
+			return ipLen - GetLen();
+		}
+
 		void SetPayloadLength(size_t payLen)
 		{
 			ipLen = GetLen() + payLen;
@@ -248,7 +253,7 @@ namespace PktGen
 			return ETHERTYPE_IP;
 		}
 
-		void FillPacket(mbuf * m, size_t parentLen, size_t & offset) const
+		void FillPacket(mbuf * m,size_t & offset) const
 		{
 			auto * ip = GetMbufHeader<struct ip>(m, offset);
 
