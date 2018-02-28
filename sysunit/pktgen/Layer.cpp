@@ -57,3 +57,14 @@ std::string PktGen::MakeLayerName(LayerVal l, int nesting)
 	str << shortName << "<" << nesting << ">";
 	return str.str();
 }
+
+namespace PktGen
+{
+	namespace Layer
+	{
+		extern const LayerImpl<LayerVal::L2, 1> L2 = NestedLayer::L2<1>;
+		extern const LayerImpl<LayerVal::L3, 1> L3 = NestedLayer::L3<1>;
+		extern const LayerImpl<LayerVal::L4, 1> L4 = NestedLayer::L4<1>;
+		extern const LayerImpl<LayerVal::PAYLOAD, 1> PAYLOAD = NestedLayer::PAYLOAD<1>;
+	}
+}

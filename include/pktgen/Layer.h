@@ -57,55 +57,42 @@ namespace PktGen
 
 	namespace NestedLayer
 	{
+		template <int Nesting>
+		const LayerImpl<LayerVal::L2, Nesting> L2;
 
 		template <int Nesting>
-		struct L2
-		{
-			typedef LayerImpl<LayerVal::L2, Nesting> IMPL;
-		};
+		const LayerImpl<LayerVal::L3, Nesting> L3;
 
 		template <int Nesting>
-		struct L3
-		{
-			typedef LayerImpl<LayerVal::L3, Nesting> IMPL;
-		};
+		const LayerImpl<LayerVal::L4, Nesting> L4;
 
 		template <int Nesting>
-		struct L4
-		{
-			typedef LayerImpl<LayerVal::L4, Nesting> IMPL;
-		};
-
-		template <int Nesting>
-		struct PAYLOAD
-		{
-			typedef LayerImpl<LayerVal::PAYLOAD, Nesting> IMPL;
-		};
+		const LayerImpl<LayerVal::PAYLOAD, Nesting> PAYLOAD;
 	}
 
 	namespace Layer
 	{
-		typedef NestedLayer::L2<1> L2;
-		typedef NestedLayer::L3<1> L3;
-		typedef NestedLayer::L4<1> L4;
-		typedef NestedLayer::PAYLOAD<1> PAYLOAD;
+		extern const LayerImpl<LayerVal::L2, 1> L2;
+		extern const LayerImpl<LayerVal::L3, 1> L3;
+		extern const LayerImpl<LayerVal::L4, 1> L4;
+		extern const LayerImpl<LayerVal::PAYLOAD, 1> PAYLOAD;
 
-		typedef NestedLayer::L2<1> OUTER_L2;
-		typedef NestedLayer::L3<1> OUTER_L3;
-		typedef NestedLayer::L4<1> OUTER_L4;
+		extern const LayerImpl<LayerVal::L2, 1> OUTER_L2;
+		extern const LayerImpl<LayerVal::L3, 1> OUTER_L3;
+		extern const LayerImpl<LayerVal::L4, 1> OUTER_L4;
 
-		typedef NestedLayer::L2<-1> INNER_L2;
-		typedef NestedLayer::L3<-1> INNER_L3;
-		typedef NestedLayer::L4<-1> INNER_L4;
-	};
+		extern const LayerImpl<LayerVal::L2, -1> INNER_L2;
+		extern const LayerImpl<LayerVal::L3, -1> INNER_L3;
+		extern const LayerImpl<LayerVal::L4, -1> INNER_L4;
+	}
 
 	template <int l2Nest = 0, int l3Nest = 0, int l4Nest = 0, int payloadNest = 0>
 	struct CurrentNesting
 	{
-		typedef typename NestedLayer::L2<l2Nest>::IMPL L2;
-		typedef typename NestedLayer::L3<l3Nest>::IMPL L3;
-		typedef typename NestedLayer::L4<l4Nest>::IMPL L4;
-		typedef typename NestedLayer::PAYLOAD<payloadNest>::IMPL PAYLOAD;
+		typedef LayerImpl<LayerVal::L2, l2Nest> L2;
+		typedef LayerImpl<LayerVal::L3, l3Nest> L3;
+		typedef LayerImpl<LayerVal::L4, l4Nest> L4;
+		typedef LayerImpl<LayerVal::PAYLOAD, payloadNest> PAYLOAD;
 
 		static constexpr int Depth(LayerVal l)
 		{
@@ -132,7 +119,7 @@ namespace PktGen
 		template <typename Layer>
 		static constexpr int ConvertInnerDepth()
 		{
-			return ConvertInnerDepth<Layer::IMPL::LAYER, Layer::IMPL::NESTING>();
+			return ConvertInnerDepth<Layer::LAYER, Layer::NESTING>();
 		}
 
 		typedef CurrentNesting<l2Nest + 1, l3Nest, l4Nest, payloadNest> NextL2;

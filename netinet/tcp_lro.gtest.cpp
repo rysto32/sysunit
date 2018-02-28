@@ -320,13 +320,13 @@ TYPED_TEST(TcpLroTestSuite, TestMerge2Tcp4)
 	// flags set to indicate that hardware checksum offload verified the
 	// L3/L4 and the checksums passed the check.
 	auto pktTemplate1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::L4>(seq(258958))
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("12345"));
+	    .WithHeader(Layer::L4).Fields(seq(258958))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("12345"));
 
 	// Generate a second template that is the next in the TCP sequence.
 	// This will have a 3-byte payload ("678")
 	auto pktTemplate2 = pktTemplate1.Next()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("678"));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("678"));
 
 	// Generate a template representing what we expect to be sent to
 	// if_input().  The packet should have the same headers as the
@@ -367,7 +367,7 @@ TYPED_TEST(TcpLroTestSuite, TestMerge2Tcp4)
 TYPED_TEST(TcpLroTestSuite, TestFlushInactive)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("abcd", 100));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("abcd", 100));
 
 	struct timeval timeout = { .tv_sec = 0, .tv_usec = 150 };
 
@@ -423,8 +423,8 @@ TYPED_TEST(TcpLroTestSuite, TestMergeAckData)
 {
 	// This template represents a pure  ACK packet.
 	auto pktTemplate1 = this->GetTcpTemplate()
-	    .template WithHeaderFields<Layer::L3>()
-	    .template WithHeaderFields<Layer::L4>(ack(889925), flags(TH_ACK));
+	    .WithHeader(Layer::L3).Fields()
+	    .WithHeader(Layer::L4).Fields(ack(889925), flags(TH_ACK));
 
 	// Generate a second template that is the next in the TCP sequence.
 	// This will have a 20-byte payload
@@ -515,14 +515,14 @@ TYPED_TEST(TcpLroTestSuite, TestDupAck)
 TYPED_TEST(TcpLroTestSuite, TestIncrAck)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::L4>(ack(965), flags(TH_ACK))
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("abcd", 100));
+	    .WithHeaderFields(Layer::L4, ack(965), flags(TH_ACK))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("abcd", 100));
 
-	auto pkt2 = pkt1.Next().template WithHeaderFields<Layer::L4>(incrAck(1000));
+	auto pkt2 = pkt1.Next().WithHeader(Layer::L4).Fields(incrAck(1000));
 
 	auto expected = pkt1
-	    .template WithHeaderFields<Layer::L4>(incrAck(1000))
-	    .template WithHeaderFields<Layer::PAYLOAD>(appendPayload("abcd", 100));
+	    .WithHeader(Layer::L4).Fields(incrAck(1000))
+	    .WithHeader(Layer::PAYLOAD).Fields(appendPayload("abcd", 100));
 
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
@@ -551,18 +551,18 @@ TYPED_TEST(TcpLroTestSuite, TestIncrAck)
 TYPED_TEST(TcpLroTestSuite, TestIncrPureAck)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::L4>(ack(965), flags(TH_ACK))
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("abcd", 100));
+	    .WithHeader(Layer::L4).Fields(ack(965), flags(TH_ACK))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("abcd", 100));
 
 	// Generate a pure ACK with a larger th_ack field
 	auto pkt2 = pkt1.Next()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload())
-	    .template WithHeaderFields<Layer::L4>(incrAck(2889));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload())
+	    .WithHeader(Layer::L4).Fields(incrAck(2889));
 
 	// The merged packet will be identical to the original data packet
 	// but will have the larger th_ack field from the pure ACK.
 	auto expected = pkt1
-	    .template WithHeaderFields<Layer::L4>(incrAck(2889));
+	    .WithHeader(Layer::L4).Fields(incrAck(2889));
 
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);
@@ -591,7 +591,7 @@ TYPED_TEST(TcpLroTestSuite, TestOoOBackwards)
 {
 	// This is the second packet that will be sent to LRO
 	auto pkt2 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
 
 	// This is the first packet that will be sent to LRO.
 	auto pkt1 = pkt2.Next();
@@ -606,7 +606,7 @@ TYPED_TEST(TcpLroTestSuite, TestOoOBackwards)
 TYPED_TEST(TcpLroTestSuite, TestOoOSkipSeq)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
 
 	// We skip over one packet in the sequence by calling Next() twice.
 	auto pkt2 = pkt1.Next().Next();
@@ -620,10 +620,10 @@ TYPED_TEST(TcpLroTestSuite, TestOoOSkipSeq)
 // TYPED_TEST(TcpLroTestSuite, TestOoODupSeq)
 // {
 // 	auto pkt1 = this->GetPayloadTemplate()
-// 	    .template WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+// 	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
 //
 // 	// Create a duplicate packet with the ip id incremented.
-// 	auto pkt2 = pkt1.template WithHeaderFields<Layer::L3>(incrId(+1));
+// 	auto pkt2 = pkt1.WithHeader(Layer::L3).Fields(incrId(+1));
 //
 // 	this->TestRejectSecond(pkt1, pkt2);
 // }
@@ -635,11 +635,11 @@ TYPED_TEST(TcpLroTestSuite, TestOoOSkipSeq)
 TYPED_TEST(TcpLroTestSuite, TestOoOSeqInPrev)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
 
 	// Create a packet with a sequence number in the middle of the
 	// range of the previous frame.
-	auto pkt2 = pkt1.Next().template WithHeaderFields<Layer::L4>(incrSeq(-1));
+	auto pkt2 = pkt1.Next().WithHeader(Layer::L4).Fields(incrSeq(-1));
 
 	this->TestRejectSecond(pkt1, pkt2);
 }
@@ -651,11 +651,11 @@ TYPED_TEST(TcpLroTestSuite, TestOoOSeqInPrev)
 TYPED_TEST(TcpLroTestSuite, TestOoOSeqOffByOne)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
 
 	// Create a packet with a sequence number one past the end of
 	// the previous frame.
-	auto pkt2 = pkt1.Next().template WithHeaderFields<Layer::L4>(incrSeq(+1));
+	auto pkt2 = pkt1.Next().WithHeader(Layer::L4).Fields(incrSeq(+1));
 
 	this->TestRejectSecond(pkt1, pkt2);
 }
@@ -663,9 +663,9 @@ TYPED_TEST(TcpLroTestSuite, TestOoOSeqOffByOne)
 TYPED_TEST(TcpLroTestSuite, TestBadIpVersion)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .template WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
 
-	auto pkt2 = pkt1.Next().template WithHeaderFields<Layer::L3>(ipVersion(5));
+	auto pkt2 = pkt1.Next().WithHeader(Layer::L3).Fields(ipVersion(5));
 
 	this->TestRejectSecond(pkt1, pkt2);
 }
@@ -673,9 +673,9 @@ TYPED_TEST(TcpLroTestSuite, TestBadIpVersion)
 // TYPED_TEST(TcpLroTestSuite, TestBadIpHeaderLen)
 // {
 // 	auto pkt1 = this->GetPayloadTemplate()
-// 	    .template WithHeaderFields<Layer::PAYLOAD>(payload("FreeBSD", 25));
+// 	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
 //
-// 	auto pkt2 = pkt1.Next().template WithHeaderFields<Layer::L3>(headerLength(3));
+// 	auto pkt2 = pkt1.Next().WithHeader(Layer::L3).Fields(headerLength(3));
 //
 // 	this->TestRejectSecond(pkt1, pkt2);
 //

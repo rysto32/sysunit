@@ -120,7 +120,7 @@ namespace PktGen
 		{
 			constexpr int nestDepth = NESTING_LEVEL::template ConvertInnerDepth<Layer>();
 
-			return WithHeaderFieldsImpl<Layer::IMPL::LAYER, nestDepth>(f...);
+			return WithHeaderFieldsImpl<Layer::LAYER, nestDepth>(f...);
 		}
 
 		mbuf *Generate() const
@@ -246,7 +246,7 @@ namespace PktGen
 	template <typename Header>
 	auto PacketMatcher(const Header & h)
 	{
-		return testing::MakeMatcher(MakePacketMatcher(h));
+		return testing::MakeMatcher(MakePacketMatcher(UnwrapTemplate(h)));
 	}
 }
 

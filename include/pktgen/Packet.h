@@ -43,17 +43,189 @@ extern "C" {
 
 namespace PktGen
 {
+	template <typename Header>
+	auto WrapPacketTemplate(const Header & h);
 
-	template <typename Lower, typename Upper, typename... Headers>
-	auto PacketTemplate(const Lower & l, const Upper & h, Headers... rest)
+	template <typename Header>
+	auto UnwrapTemplate(const Header &);
+
+	template <typename Header>
+	class PacketTemplateWrapper
 	{
-		return l.Encapsulate(PacketTemplate(h, rest...));
+	private:
+		Header header;
+
+		typedef PacketTemplateWrapper SelfType;
+
+		struct WithHeaderImpl;
+		struct WithHeaderFieldsImpl;
+
+		template <typename Layer>
+		class FieldsImpl
+		{
+		private:
+			const Header & header;
+
+			explicit FieldsImpl(const Header & h)
+			  : header(h)
+			{
+			}
+
+			friend struct WithHeaderImpl;
+			friend struct WithHeaderFieldsImpl;
+			friend PacketTemplateWrapper;
+
+			FieldsImpl() = delete;
+
+			FieldsImpl(const FieldsImpl & f) = default;
+			FieldsImpl(FieldsImpl &&) = delete;
+
+			FieldsImpl & operator=(const FieldsImpl&) = delete;
+			FieldsImpl & operator=(FieldsImpl &&) = delete;
+
+		public:
+			template <typename... FieldList>
+			SelfType Fields(FieldList... f)
+			{
+				return SelfType(header.template WithHeaderFields<Layer>(f...));
+			}
+
+			template <typename... FieldList>
+			SelfType operator()(FieldList... f)
+			{
+				return Fields(f...);
+			}
+		};
+
+		struct WithHeaderFieldsImpl
+		{
+		private:
+			const SelfType & parent;
+
+			WithHeaderFieldsImpl(const SelfType & p)
+			  : parent(p)
+			{
+			}
+
+			friend SelfType;
+			WithHeaderFieldsImpl(const WithHeaderFieldsImpl &) = default;
+			WithHeaderFieldsImpl & operator=(const WithHeaderFieldsImpl &) = default;
+
+		public:
+			template <typename Layer, typename... Fields>
+			SelfType operator()(Layer l, Fields... f) const
+			{
+				return SelfType(parent.header.template WithHeaderFields<Layer>(f...));
+			}
+
+			template <typename Layer>
+			auto operator[](Layer l) const
+			{
+				return FieldsImpl<Layer>(parent.header);
+			}
+
+			WithHeaderFieldsImpl() = delete;
+			WithHeaderFieldsImpl(WithHeaderFieldsImpl &&) = delete;
+			WithHeaderFieldsImpl & operator=(WithHeaderFieldsImpl &&) = delete;
+		};
+
+		friend WithHeaderImpl;
+		friend WithHeaderFieldsImpl;
+
+	public:
+		explicit PacketTemplateWrapper(const Header & h)
+		  : header(h),
+		    WithHeaderFields(*this)
+		{
+		}
+
+		WithHeaderFieldsImpl WithHeaderFields;
+
+		template <typename Layer>
+		auto WithHeader(Layer l) const
+		{
+			return FieldsImpl<Layer>(header);
+		}
+
+		template <typename... Fields>
+		SelfType With(Fields... f) const
+		{
+			return SelfType(header.With(f...));
+		}
+
+		template <typename Lower>
+		auto EncapIn(const Lower & lower) const
+		{
+			return WrapPacketTemplate(header.EncapIn(UnwrapTemplate(lower)));
+		}
+
+		template <typename Lower>
+		auto Encapsulate(const Lower & lower) const
+		{
+			return WrapPacketTemplate(header.Encapsulate(UnwrapTemplate(lower)));
+		}
+
+		Header Unwrap() const
+		{
+			return header;
+		}
+
+		mbuf * Generate() const
+		{
+			return header.Generate();
+		}
+
+		SelfType Next() const
+		{
+			return SelfType(header.Next());
+		}
+
+		void print(int depth) const
+		{
+			header.print(depth);
+		}
+	};
+
+	template <typename Header>
+	auto UnwrapTemplate(const PacketTemplateWrapper<Header> & h)
+	{
+		return h.Unwrap();
 	}
 
 	template <typename Header>
-	auto PacketTemplate(const Header & h)
+	auto UnwrapTemplate(const Header & h)
 	{
 		return h;
+	}
+
+	template <typename Lower, typename Upper, typename... Headers>
+	auto MakePacketTemplate(const Lower & l, const Upper & h, Headers... rest)
+	{
+		return UnwrapTemplate(l).Encapsulate(MakePacketTemplate(UnwrapTemplate(h), rest...));
+	}
+
+	template <typename Header>
+	auto MakePacketTemplate(const Header & h)
+	{
+		return UnwrapTemplate(h);
+	}
+
+	template <typename Header>
+	auto WrapPacketTemplate(const PacketTemplateWrapper<Header> & h)
+	{
+		static_assert(!std::is_same<Header, Header>::value);
+	}
+
+	template <typename Header>
+	auto WrapPacketTemplate(const Header & h)
+	{
+		return PacketTemplateWrapper<Header>(h);
+	}
+
+	template <typename... Headers>
+	auto PacketTemplate(Headers... rest)
+	{
+		return WrapPacketTemplate(MakePacketTemplate(rest...));
 	}
 
 	template <typename T>
