@@ -133,12 +133,6 @@ namespace PktGen
 			return upper.EncapIn(*this);
 		}
 
-		template <typename Lower>
-		friend auto operator|(SelfType lhs, Lower rhs)
-		{
-			return lhs.EncapIn(rhs);
-		}
-
 		mbuf *Generate() const
 		{
 			size_t parentOff;

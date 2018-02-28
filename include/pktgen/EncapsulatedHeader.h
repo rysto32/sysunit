@@ -165,12 +165,6 @@ namespace PktGen
 			return MakeEncapsulation(*this, upmost);
 		}
 
-		template <typename Deepest>
-		friend auto operator|(SelfType lhs, Deepest rhs)
-		{
-			return lhs.EncapIn(rhs);
-		}
-
 		const auto & GetLower() const
 		{
 			return lower;
