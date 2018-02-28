@@ -134,7 +134,7 @@ namespace PktGen {
 			return UnnestedEthernetTemplate(*this);
 		}
 
-		void print(int depth)
+		void print(int depth) const
 		{
 			PrintIndent(depth, "Ether : {");
 			PrintIndent(depth + 1, "dst : %02x:%02x:%02x:%02x:%02x:%02x",

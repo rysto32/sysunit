@@ -294,7 +294,7 @@ namespace PktGen
 			return UnnestedTcpTemplate(*this);
 		}
 
-		void print(int depth)
+		void print(int depth) const
 		{
 			PrintIndent(depth, "TCP : {");
 			PrintIndent(depth + 1, "seq : %d", th_seq);

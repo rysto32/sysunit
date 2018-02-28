@@ -178,7 +178,7 @@ namespace PktGen
 			return EncapsulatableHeader<decltype(newHeader)>(newHeader);
 		}
 
-		void print(int depth)
+		void print(int depth) const
 		{
 			std::string headerName(LAYER::Name());
 			PrintIndent(depth, "Encapable %s : {", headerName.c_str());
