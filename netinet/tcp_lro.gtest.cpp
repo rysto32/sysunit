@@ -277,6 +277,9 @@ public:
 
 		tcp_lro_init(&lc);
 		lc.ifp = mockIfp->GetIfp();
+
+		ipforwarding = 0;
+		ip6_forwarding = 0;
 	}
 
 	void TestCaseTearDown() override
@@ -803,4 +806,19 @@ TYPED_TEST(TcpLroTestSuite, TestTwoVlanFlows)
 	ASSERT_EQ(ret, 0);
 
 	tcp_lro_flush_all(&this->lc);
+}
+
+// Test that tcp_lro will not accept any packets if ip[6]_forwarding is enabled.
+// LRO cannot be used on a router as it would modify packets in flight.
+TYPED_TEST(TcpLroTestSuite, TestForwardingEnabled)
+{
+	auto pkt = this->GetPayloadTemplate();
+
+	ipforwarding = 1;
+	ip6_forwarding = 1;
+
+	struct mbuf * m = pkt.Generate();
+	int ret = tcp_lro_rx(&this->lc, m, 0);
+	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+	m_freem(m);
 }
