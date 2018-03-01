@@ -84,6 +84,11 @@ namespace PktGen
 			offset += GetLen();
 		}
 
+		size_t GetPayloadLength() const
+		{
+			return 0;
+		}
+
 		size_t GetLen() const
 		{
 			return payload.size();

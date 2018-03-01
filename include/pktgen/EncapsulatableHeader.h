@@ -40,7 +40,7 @@ namespace PktGen
 		Lower operator()(const Lower & l, const Upper & u) const
 		{
 			return l.With(
-			    PayloadLengthField(u.GetLen())
+			    PayloadLengthField(u.GetLen() + u.GetPayloadLength())
 			);
 		}
 	};
