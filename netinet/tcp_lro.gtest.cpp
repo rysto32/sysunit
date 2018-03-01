@@ -720,3 +720,54 @@ TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1
 	ASSERT_EQ(ret, failCode);
 	m_freem(m);
 }
+
+TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
+{
+	auto flow1_pkt1 = this->GetPayloadTemplate()
+	    .WithHeader(Layer::L4).Fields(src(5), dst(6))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("flow1"));
+
+	auto flow2_pkt1 = this->GetPayloadTemplate()
+	    .WithHeader(Layer::L4).Fields(src(104), dst(1028))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("flow2"));
+
+	const char * flow1_payload2 = "more";
+	auto flow1_pkt2 = flow1_pkt1.Next().WithHeader(Layer::PAYLOAD).Fields(payload(flow1_payload2));
+
+	const char * flow2_payload2 = "yet more";
+	auto flow2_pkt2 = flow2_pkt1.Next().WithHeader(Layer::PAYLOAD).Fields(payload(flow2_payload2));
+
+	auto flow1_expect = flow1_pkt1.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow1_payload2));
+
+	auto flow2_expect = flow2_pkt1.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow2_payload2));
+
+	// Note that the order in which these expectations are listed does not
+	// imply that the packets must arrive in this order.  You have to explicit
+	// sequence expectations to imply an ordering.
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow1_expect)))
+	    .Times(1);
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow2_expect)))
+	    .Times(1);
+
+	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 25847});
+	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 25979});
+	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 27056});
+	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 28951});
+
+	// Begin the testcase
+	int ret;
+
+	ret = tcp_lro_rx(&this->lc, flow1_pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, flow2_pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, flow1_pkt2.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, flow2_pkt2.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	tcp_lro_flush_all(&this->lc);
+}
