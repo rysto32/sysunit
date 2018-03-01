@@ -214,6 +214,11 @@ namespace PktGen
 			return *this;
 		}
 
+		Ipv6Template Retransmission() const
+		{
+			return *this;
+		}
+
 		template <typename NestingLevel>
 		static auto MakeNested(const SelfType & up)
 		{

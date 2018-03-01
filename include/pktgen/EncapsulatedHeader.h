@@ -180,6 +180,11 @@ namespace PktGen
 			return SelfType(lower.Next(), upper.Next());
 		}
 
+		SelfType Retransmission() const
+		{
+			return SelfType(lower.Retransmission(), upper.Retransmission());
+		}
+
 		void print(int depth) const
 		{
 			std::string innerName(Lower::LAYER::Name());

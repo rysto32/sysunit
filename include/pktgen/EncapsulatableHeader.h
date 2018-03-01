@@ -171,6 +171,11 @@ namespace PktGen
 			return SelfType(header.Next());
 		}
 
+		SelfType Retransmission() const
+		{
+			return SelfType(header.Retransmission());
+		}
+
 		template <typename NestingLevel>
 		static auto MakeNested(const SelfType & up)
 		{

@@ -99,6 +99,11 @@ namespace PktGen
 			return *this;
 		}
 
+		PayloadTemplate Retransmission() const
+		{
+			return *this;
+		}
+
 		template <typename NestingLevel>
 		static auto MakeNested(const SelfType & up)
 		{

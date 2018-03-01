@@ -292,6 +292,11 @@ namespace PktGen
 			return copy;
 		}
 
+		Ipv4Template Retransmission() const
+		{
+			return Next();
+		}
+
 		template <typename NestingLevel>
 		static auto MakeNested(const SelfType & up)
 		{

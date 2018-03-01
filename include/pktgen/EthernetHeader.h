@@ -130,6 +130,11 @@ namespace PktGen {
 			return *this;
 		}
 
+		SelfType Retransmission() const
+		{
+			return *this;
+		}
+
 		template <typename NestingLevel>
 		static auto MakeNested(const SelfType & up)
 		{

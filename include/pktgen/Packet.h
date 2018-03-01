@@ -180,6 +180,11 @@ namespace PktGen
 			return SelfType(header.Next());
 		}
 
+		SelfType Retransmission() const
+		{
+			return SelfType(header.Retransmission());
+		}
+
 		void print(int depth) const
 		{
 			header.print(depth);

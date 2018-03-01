@@ -255,6 +255,11 @@ namespace PktGen
 			return copy;
 		}
 
+		TcpTemplate Retransmission() const
+		{
+			return *this;
+		}
+
 		void FillPacket(mbuf * m, size_t & offset) const
 		{
 			auto * tcp = GetMbufHeader<tcphdr>(m, offset);
