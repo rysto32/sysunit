@@ -771,3 +771,36 @@ TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 
 	tcp_lro_flush_all(&this->lc);
 }
+
+TYPED_TEST(TcpLroTestSuite, TestTwoVlanFlows)
+{
+	auto flow1_pkt1 = this->GetPayloadTemplate()
+	    .WithHeader(Layer::L2).Fields(mbufVlan(5))
+	    .WithHeader(Layer::L4).Fields(src(5), dst(6))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("flow1"));
+
+	auto flow2_pkt1 = flow1_pkt1.Next()
+	    .WithHeader(Layer::L2).Fields(mbufVlan(6));
+
+	// Note that the order in which these expectations are listed does not
+	// imply that the packets must arrive in this order.  You have to explicit
+	// sequence expectations to imply an ordering.
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow1_pkt1)))
+	    .Times(1);
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow2_pkt1)))
+	    .Times(1);
+
+	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 25847});
+	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 25979});
+
+	// Begin the testcase
+	int ret;
+
+	ret = tcp_lro_rx(&this->lc, flow1_pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, flow2_pkt1.Generate(), 0);
+	ASSERT_EQ(ret, 0);
+
+	tcp_lro_flush_all(&this->lc);
+}
