@@ -60,8 +60,9 @@ namespace PktGen
 				*listener << "Payload incorrect at mbuf " <<
 				    mbufNumber << " index " << mbIndex <<
 				    " (payload index " << payIndex << ")" <<
-				    " value " << std::hex << int(ptr[mbIndex])
-				    << " (expected " << int(payloadBytes.at(payIndex)) << ")";
+				    " value " << std::hex << int(ptr[mbIndex]) << "('" << ptr[mbIndex] << "')"
+				    << " (expected " << int(payloadBytes.at(payIndex)) <<
+				    "('" << payloadBytes.at(payIndex) << "'))";
 				return false;
 			}
 
@@ -93,7 +94,6 @@ namespace PktGen
 				return false;
 
 			mbufNumber++;
-			payloadIndex += m->m_len - hdroff;
 			hdroff = 0;
 			m = m->m_next;
 		}
