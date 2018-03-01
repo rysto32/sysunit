@@ -67,6 +67,26 @@ namespace PktGen
 			return false;
 		}
 
+		uint16_t tag = header.GetMbufVlan();
+		if (tag == 0) {
+			if (m->m_flags & M_VLANTAG) {
+				*listener << "Ethernet: M_VLANTAG is set on mbuf (expected no tag)";
+				return false;
+			}
+		} else {
+			if (!(m->m_flags & M_VLANTAG)) {
+				*listener << "Ethernet: M_VLANTAG is not set on mbuf"
+				    << " (expected tag " << tag << ")";
+				return false;
+			}
+
+			if (tag != m->m_pkthdr.ether_vtag) {
+				*listener << "Ethernet: mbuf ether_vlan is " << m->m_pkthdr.ether_vtag
+				    << " (expected tag " << tag << ")";
+				return false;
+			}
+		}
+
 		return true;
 	}
 

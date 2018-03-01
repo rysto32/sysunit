@@ -49,6 +49,11 @@ namespace PktGen
 	{
 		return [t](auto & h) { h.SetEthertype(t); };
 	}
+
+	auto inline mbufVlan(uint16_t t)
+	{
+		return [t] (auto & h) { h.SetMbufVlan(t); };
+	}
 }
 
 #endif

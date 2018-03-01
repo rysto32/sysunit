@@ -48,6 +48,8 @@ namespace PktGen {
 		uint16_t ethertype;
 		size_t payloadLength;
 
+		uint16_t mbVlan;
+
 		typedef EthernetTemplate<Nesting> SelfType;
 
 	public:
@@ -57,7 +59,9 @@ namespace PktGen {
 		typedef DefaultEncapFieldSetter EncapFieldSetter;
 
 		EthernetTemplate()
-		  : ethertype(0)
+		  : ethertype(0),
+		    payloadLength(0),
+		    mbVlan(0)
 		{
 		}
 
@@ -65,7 +69,9 @@ namespace PktGen {
 		explicit EthernetTemplate(const EthernetTemplate<U> & h)
 		  : dst(h.GetDst()),
 		    src(h.GetSrc()),
-		    ethertype(h.GetEthertype())
+		    ethertype(h.GetEthertype()),
+		    payloadLength(h.GetPayloadLength()),
+		    mbVlan(h.GetMbufVlan())
 		{
 		}
 
@@ -84,6 +90,11 @@ namespace PktGen {
 			return ethertype;
 		}
 
+		uint16_t GetMbufVlan() const
+		{
+			return mbVlan;
+		}
+
 		void SetSrc(const EtherAddr & a)
 		{
 			src = a;
@@ -99,6 +110,11 @@ namespace PktGen {
 			ethertype = t;
 		}
 
+		void SetMbufVlan(uint16_t v)
+		{
+			mbVlan = v;
+		}
+
 		void FillPacket(mbuf * m, size_t & offset) const
 		{
 			auto * eh = GetMbufHeader<ether_header>(m, offset);
@@ -106,6 +122,11 @@ namespace PktGen {
 			memcpy(eh->ether_dhost, dst.GetAddr(), ETHER_ADDR_LEN);
 			memcpy(eh->ether_shost, src.GetAddr(), ETHER_ADDR_LEN);
 			eh->ether_type = ntohs(ethertype);
+
+			if (mbVlan != 0) {
+				m->m_pkthdr.ether_vtag = mbVlan;
+				m->m_flags |= M_VLANTAG;
+			}
 
 			offset += GetLen();
 		}

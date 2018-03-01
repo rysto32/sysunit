@@ -131,7 +131,7 @@ namespace PktGen
 			return p;
 		}
 
-		void print(int depth)
+		void print(int depth) const
 		{
 			PrintIndent(depth, "Payload = {");
 			PrintIndent(depth + 1, "len = %zd", GetLen());
