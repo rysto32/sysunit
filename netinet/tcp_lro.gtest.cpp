@@ -212,6 +212,56 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 	tcp_lro_free(&lc);
 }
 
+// Send a packet with an invalid IP header length field, and verify that tcp_lro
+// rejects it.
+TEST_F(TcpLroSampleTestSuite, TestBadIpHeaderLen)
+{
+	auto pkt = PacketTemplate(
+	    EthernetHeader()
+	        .With(
+		    src("00:35:59:25:ea:90"),
+		    dst("25:36:49:49:36:25")
+		),
+	     Ipv4Header()
+	        .With(
+	            src("192.168.1.1"),
+		    dst("192.168.1.10"),
+		    headerLength(3),
+		    checksumVerified(),
+		    checksumPassed()
+		 ),
+	    TcpHeader()
+	        .With(
+		    src(11965),
+		    dst(54321),
+		    checksumVerified(),
+		    checksumPassed()
+		),
+	    PacketPayload()
+	        .With(
+		    payload("FreeBSD", 25)
+		 )
+	);
+
+	StrictMock<MockIfnet> mockIfp("mock", 0);
+
+	// Begin the testcase.
+	struct lro_ctrl lc;
+	tcp_lro_init(&lc);
+	lc.ifp = mockIfp.GetIfp();
+
+	// Send the invalid frame to tcp_lro_rx() and confirm that it is rejected
+	struct mbuf * m = pkt.Generate();
+	int ret = tcp_lro_rx(&lc, m, 0);
+	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+
+	// When tcp_lro_rx() rejects a frame the caller retains ownership of the
+	// mbuf, so free it now that we're done with it.
+	m_freem(m);
+
+	tcp_lro_free(&lc);
+}
+
 template <typename NetworkLayerTemplate>
 class TcpLroTestSuite : public SysUnit::TestSuite
 {
@@ -687,17 +737,6 @@ TYPED_TEST(TcpLroTestSuite, TestBadIpVersion)
 	this->TestRejectSecond(pkt1, pkt2);
 }
 
-// TYPED_TEST(TcpLroTestSuite, TestBadIpHeaderLen)
-// {
-// 	auto pkt1 = this->GetPayloadTemplate()
-// 	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
-//
-// 	auto pkt2 = pkt1.Next().WithHeader(Layer::L3).Fields(headerLength(3));
-//
-// 	this->TestRejectSecond(pkt1, pkt2);
-//
-// 	tcp_lro_flush_all(&this->lc);
-// }
 
 template <typename NetworkLayerTemplate>
 template <typename PktTemplate>
