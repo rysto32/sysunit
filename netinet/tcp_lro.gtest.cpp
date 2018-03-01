@@ -81,7 +81,7 @@ class TcpLroSampleTestSuite : public SysUnit::TestSuite
 // that the packet is passed to if_input(), and that it's unmodified.
 TEST_F(TcpLroSampleTestSuite, TestSingleTcp4)
 {
-	// Create a packet template.  This template describes a TCP/IP packet
+	// Create a packet template.  This template describes a TCP/IPv4 packet
 	// with a payload of 7 nul (0x00) bytes.  The mbuf will have flags set
 	// to indicate that hardware checksum offload verified the L3/L4
 	// and the checksums passed the check.
@@ -150,17 +150,11 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp4)
 	tcp_lro_free(&lc);
 }
 
-// Generate a single TCP/IPv4 packet and send it through tcp_lro_rx().  Verify
+// Generate a single TCP/IPv6 packet and send it through tcp_lro_rx().  Verify
 // that the packet is passed to if_input(), and that it's unmodified.
 TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 {
-	// Create a packet template.  This template describes a TCP/IP packet
-	// with a payload of 7 nul (0x00) bytes.  The mbuf will have flags set
-	// to indicate that hardware checksum offload verified the L3/L4
-	// and the checksums passed the check.
-	// The type is described as "auto" as writing out the actual type would
-	// be infeasible due to the heavy use of C++ templates in the packet
-	// template API.
+	// Create a packet template for a TCP/IPv6 packet
 	auto pktTemplate = PacketTemplate(
 	    EthernetHeader()
 	        .With(
@@ -185,8 +179,7 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 		 )
 	);
 
-	// Initialize mocks.  Mocks are used to implement kernel APIs depended
-	// on by the code being tested.
+	// Initialize mocks.
 
 	StrictMock<MockIfnet> mockIfp("mock", 0);
 
@@ -197,8 +190,6 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 	EXPECT_CALL(mockIfp, if_input(PacketMatcher(pktTemplate)))
 	    .Times(1);
 
-	// The MockTime interface is used to implement time-based APIs.  In this
-	// case it's used for its implementation of getmicrotime().
 	// Inform the mock to expect a single call to getmicrotime(), and specify the
 	// value that will be returned to the code under test when it's called.
 	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
@@ -244,6 +235,9 @@ public:
 		mockIfp.reset();
 	}
 
+	// Generate a template for the network (L3) layer header.  This will
+	// have specializations for IPv4 and IPv6 tests to generate the correct
+	// header.
 	static NetworkLayerTemplate GetNetworkLayerTemplate();
 
 	// For convenience, this function can be called to create a
@@ -251,19 +245,19 @@ public:
 	static auto GetTcpTemplate()
 	{
 		return PacketTemplate(
-		EthernetHeader()
+		    EthernetHeader()
 			.With(
 			src("02:f0:e0:d0:c0:b0"),
 			dst("02:05:04:0c:02:01")
 			),
-		GetNetworkLayerTemplate(),
-		TcpHeader()
+		    GetNetworkLayerTemplate(),
+		    TcpHeader()
 			.With(
 			src(6995),
 			dst(123),
 			checksumVerified(),
 			checksumPassed()
-			)
+		    )
 		);
 	}
 
@@ -277,6 +271,8 @@ public:
 
 	}
 
+	// Run a test case that sends pkt1 and pkt2 to tcp_lro_rx() in that order, and expects the first
+	// packet to be accepted but the second to be rejected with the given error code.
 	template <typename PktTemplate>
 	void TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2);
 
@@ -287,6 +283,7 @@ public:
 typedef std::invoke_result<decltype(Ipv4Header)>::type Ipv4TemplateType;
 typedef std::invoke_result<decltype(Ipv6Header)>::type Ipv6TemplateType;
 
+// Generate an IPv4 header template.
 template <>
 Ipv4TemplateType TcpLroTestSuite<Ipv4TemplateType>::GetNetworkLayerTemplate()
 {
@@ -306,6 +303,7 @@ PktTemplate TcpLroTestSuite<Ipv4TemplateType>::NextIpFrame(const PktTemplate & p
 	return pkt.WithHeader(Layer::L3).Fields(incrId(+1));
 }
 
+// Generate a IPv6 header template.
 template <>
 Ipv6TemplateType TcpLroTestSuite<Ipv6TemplateType>::GetNetworkLayerTemplate()
 {
