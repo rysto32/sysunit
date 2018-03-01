@@ -324,7 +324,7 @@ public:
 	// Run a test case that sends pkt1 and pkt2 to tcp_lro_rx() in that order, and expects the first
 	// packet to be accepted but the second to be rejected with the given error code.
 	template <typename PktTemplate>
-	void TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2);
+	void TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2, int failCode = TCP_LRO_CANNOT);
 
 	template <typename PktTemplate>
 	PktTemplate NextIpFrame(const PktTemplate & pkt);
@@ -537,45 +537,6 @@ TYPED_TEST(TcpLroTestSuite, TestMergeAckData)
 	tcp_lro_flush_all(&this->lc);
 }
 
-// Send a pure ACK followed by a duplicate ACK.  Confirm that the original
-// ACK is sent up the second and the dup ACK is rejected by LRO (which would
-// force a real Ethernet driver to send the dup ACK up the stack immediately).
-TYPED_TEST(TcpLroTestSuite, TestDupAck)
-{
-	auto origAck = this->GetTcpTemplate();
-
-	// Generate a dup ACK.  This should be a replica of the original
-	// ACK but with the IP id incremented.
-	auto dupAck = origAck.Next();
-
-	// Tell the this->mockIfp to expect the first ACK.  Because it is a dup ACK,
-	// it will reject the second packet, so if_input() won't see the second
-	// one.  In a real ethernet driver, the driver would then be responsible
-	// for sending the second packet up to if_input() itself.
-	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(origAck)))
-	    .Times(1);
-
-	// getmicrotime() is called once per accepted packet, so only once
-	// call is expected.
-	MockTime::ExpectGetMicrotime({.tv_sec = 1, .tv_usec = 500});
-
-	// Begin the testcase.
-
-	// Send the two frames in sequence to tcp_lro_rx().  Test the return
-	// value from each call.
-	int ret = tcp_lro_rx(&this->lc, origAck.Generate(), 0);
-	ASSERT_EQ(ret, 0);
-
-	// tcp_lro_rx() will detect the dup ACK here
-	struct mbuf *m2 = dupAck.Generate();
-	ret = tcp_lro_rx(&this->lc, m2, 0);
-	ASSERT_EQ(ret, TCP_LRO_CANNOT);
-
-	// tcp_lro_rx() does not consume the mbuf when it returns non-zero, so
-	// have to manually free it here.
-	m_freem(m2);
-}
-
 // Send two packets with TH_ACK set, and the second with a th_ack higher
 // than the first.  Verify that the merged packet sent up the stack has the
 // th_ack value from the second packet.
@@ -648,6 +609,21 @@ TYPED_TEST(TcpLroTestSuite, TestIncrPureAck)
 	ASSERT_EQ(ret, 0);
 
 	tcp_lro_flush_all(&this->lc);
+}
+
+// Send a pure ACK followed by a duplicate ACK.  Confirm that the original
+// ACK is sent up the second and the dup ACK is rejected by LRO (which would
+// force a real Ethernet driver to send the dup ACK up the stack immediately).
+TYPED_TEST(TcpLroTestSuite, TestDupAck)
+{
+	auto origAck = this->GetTcpTemplate()
+	    .WithHeader(Layer::L4).Fields(flags(TH_ACK), ack(89772));
+
+	// Generate a dup ACK.  This should be a replica of the original
+	// ACK but with the IP id incremented.
+	auto dupAck = origAck.Next();
+
+	this->TestRejectSecond(origAck, dupAck);
 }
 
 // Test the reception of out-of-order packets where the TCP sequence
@@ -734,14 +710,15 @@ TYPED_TEST(TcpLroTestSuite, TestBadIpVersion)
 
 	auto pkt2 = pkt1.Next().WithHeader(Layer::L3).Fields(ipVersion(5));
 
-	this->TestRejectSecond(pkt1, pkt2);
-}
+	this->TestRejectSecond(pkt1, pkt2, TCP_LRO_NOT_SUPPORTED);
 
+	tcp_lro_flush_all(&this->lc);
+}
 
 template <typename NetworkLayerTemplate>
 template <typename PktTemplate>
 void
-TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2)
+TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2, int failCode)
 {
 	// The first packet should be flushed by LRO immediately when
 	// it sees the second invalid packet.
@@ -759,6 +736,6 @@ TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1
 
 	struct mbuf * m = pkt2.Generate();
 	ret = tcp_lro_rx(&this->lc, m, 0);
-	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+	ASSERT_EQ(ret, failCode);
 	m_freem(m);
 }
