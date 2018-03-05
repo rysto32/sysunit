@@ -196,10 +196,10 @@ namespace PktGen
 		{
 			auto * ip6 = GetMbufHeader<ip6_hdr>(m, offset);
 
-			ip6->ip6_flow = ipv6_flow & IPV6_FLOWINFO_MASK;
-			ip6->ip6_vfc = (ip6->ip6_vfc & ~IPV6_VERSION_MASK) |
-				((ipv6_version << 4) & IPV6_VERSION_MASK) |
-				(ipv6_class & 0x0f);
+			ip6->ip6_flow = hton(
+			    (ipv6_version << 28) |
+			    (ipv6_class << 20) |
+			    (ipv6_flow & 0xfffff));
 			ip6->ip6_nxt = hton(ipv6_nxt);
 			ip6->ip6_hlim = hton(ipv6_hlim);
 			ip6->ip6_plen = hton(ipv6_plen);
