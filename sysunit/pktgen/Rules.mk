@@ -9,3 +9,21 @@ SRCS := \
 	Layer.cpp \
 	PayloadMatcher.cpp \
 	TcpMatcher.cpp \
+
+TESTS := \
+	EthernetHeader \
+
+MBUF_LIBS := \
+	fake_mbuf \
+	fake_atomic \
+	fake_malloc \
+	fake_mib \
+	fake_panic \
+	fake_uma \
+	sysunit_init \
+
+TEST_ETHERNETHEADER_SRCS := \
+	EtherAddr.cpp \
+
+TEST_ETHERNETHEADER_LIBS := \
+	$(MBUF_LIBS) \
