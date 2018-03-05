@@ -61,6 +61,11 @@ namespace PktGen
 		};
 	}
 
+	auto inline fragOffset(uint16_t x)
+	{
+		return [x] (auto & h) { h.SetOff(x); } ;
+	}
+
 	auto inline ttl(uint8_t x)
 	{
 		return [x](auto & h) { h.SetTtl(x); };

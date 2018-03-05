@@ -163,6 +163,11 @@ namespace PktGen
 			return off;
 		}
 
+		void SetOff(uint16_t o)
+		{
+			off = o;
+		}
+
 		uint16_t GetIpLen() const
 		{
 			return ipLen;
