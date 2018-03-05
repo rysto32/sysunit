@@ -13,6 +13,7 @@ SRCS := \
 TESTS := \
 	EthernetHeader \
 	Ipv4Header \
+	Ipv6Header \
 
 MBUF_LIBS := \
 	fake_mbuf \
@@ -30,4 +31,10 @@ TEST_ETHERNETHEADER_LIBS := \
 	$(MBUF_LIBS) \
 
 TEST_IPV4HEADER_LIBS := \
+	$(MBUF_LIBS) \
+
+TEST_IPV6HEADER_SRCS := \
+	Ipv6Addr.cpp \
+
+TEST_IPV6HEADER_LIBS := \
 	$(MBUF_LIBS) \
