@@ -118,7 +118,7 @@ namespace PktGen
 		{
 			constexpr int nestDepth = NESTING_LEVEL::template ConvertInnerDepth<Layer>();
 
-			return WithHeaderFieldsImpl<Layer::IMPL::LAYER, nestDepth>(f...);
+			return WithHeaderFieldsImpl<Layer::LAYER, nestDepth>(f...);
 		}
 
 		template <typename Lower>
