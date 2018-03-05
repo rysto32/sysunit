@@ -14,15 +14,14 @@ TEST_$$(TEST)_WRAPFUNCS += \
 	realloc=krealloc \
 	reallocf=kreallocf \
 
-TEST_$$(TEST)_OBJPATHS=
+TEST_$$(TEST)_OBJPATHS:=
 ifneq ($$(TEST_$$(TEST)_WRAPFUNCS),)
 
 TEST_$$(TEST)_REDEFINE_SYMS:=$$(addprefix --redefine-sym ,$$(TEST_$$(TEST)_WRAPFUNCS))
 
 TEST_$$(TEST)_OBJDIR := $$(TESTOBJDIR)/$$(CURDIR)
 
-TEST_$$(TEST)_OBJPATHS:=$$(addprefix $$(TEST_$$(TEST)_OBJDIR)/,$$(addsuffix .test.o,$$(basename $$(TEST_OBJS)))) \
-    $$(addprefix $$($$(LIB)_OBJDIR)/,$(TEST_OBJS))
+TEST_$$(TEST)_OBJPATHS:=$$(addprefix $$(TEST_$$(TEST)_OBJDIR)/,$$(addsuffix .test.o,$$(basename $$(TEST_OBJS))))
 
 $$(TEST_$$(TEST)_OBJDIR)/%.test.o: $$($$(LIB)_OBJDIR)/%.o
 	mkdir -p $$(dir $$@)
