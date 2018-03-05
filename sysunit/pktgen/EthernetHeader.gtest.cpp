@@ -66,13 +66,13 @@ public:
 	void ExpectTemplateMatches(const Header & header,
 	    const struct ether_header * expected, uint16_t vlan = 0)
 	{
-		struct mbuf * m = header.Generate();
+		MbufPtr m = header.Generate();
 
 		EXPECT_EQ(m->m_flags & M_PKTHDR, M_PKTHDR);
 		EXPECT_EQ(m->m_len, sizeof(struct ether_header));
 		EXPECT_EQ(m->m_pkthdr.len, sizeof(struct ether_header));
 
-		CheckMbufMatches(m, expected);
+		CheckMbufMatches(m.get(), expected);
 
 		if (vlan == 0) {
 			EXPECT_EQ(m->m_flags & M_VLANTAG, 0);
@@ -80,18 +80,15 @@ public:
 			EXPECT_EQ(m->m_flags & M_VLANTAG, M_VLANTAG);
 			EXPECT_EQ(m->m_pkthdr.ether_vtag, vlan);
 		}
-
-		m_freem(m);
 	}
 
 	template <typename Header>
 	void VerifyMbufChainLen(const Header & header, size_t expectedPayload)
 	{
-		struct mbuf * m = header.Generate();
+		MbufPtr m = header.Generate();
 
 		EXPECT_EQ(m->m_pkthdr.len,
 		    sizeof(struct ether_header) + expectedPayload);
-		m_freem(m);
 	}
 };
 
@@ -165,12 +162,11 @@ TEST_F(EthernetHeaderTestSuite, TestNext)
 	auto p2 = p1.Next();
 	auto p3 = p1.Retransmission();
 
-	struct mbuf *m = p1.Generate();
-	struct ether_header *expected = GetMbufHeader<ether_header>(m, 0);
+	MbufPtr m = p1.Generate();
+	struct ether_header *expected = GetMbufHeader<ether_header>(m.get(), 0);
 
 	ExpectTemplateMatches(p2, expected, 56);
 	ExpectTemplateMatches(p3, expected, 56);
-	m_freem(m);
 }
 
 // Generate an ethernet packet with a large payload embedded in it.  Verify

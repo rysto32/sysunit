@@ -170,9 +170,15 @@ namespace PktGen
 			return header;
 		}
 
-		mbuf * Generate() const
+		MbufPtr Generate() const
 		{
-			return header.Generate();
+			size_t offset = 0;
+			return header.Generate(offset);
+		}
+
+		struct mbuf * GenerateRawMbuf() const
+		{
+			return Generate().release();
 		}
 
 		SelfType Next() const

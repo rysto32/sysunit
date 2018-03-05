@@ -30,6 +30,7 @@
 #define PKTGEN_ENCAPSULATED_HEADER
 
 #include "pktgen/Layer.h"
+#include "pktgen/MbufPtr.h"
 #include "pktgen/Packet.h"
 
 #include <gmock/gmock-matchers.h>
@@ -123,16 +124,10 @@ namespace PktGen
 			return WithHeaderFieldsImpl<Layer::LAYER, nestDepth>(f...);
 		}
 
-		mbuf *Generate() const
+		MbufPtr Generate(size_t & offset) const
 		{
-			size_t parentOff;
-			return Generate(parentOff);
-		}
-
-		mbuf *Generate(size_t & offset) const
-		{
-			mbuf * m = lower.Generate(offset);
-			upper.FillPacket(m, offset);
+			MbufPtr m = lower.Generate(offset);
+			upper.FillPacket(m.get(), offset);
 
 			return m;
 		}

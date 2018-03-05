@@ -30,6 +30,7 @@
 #define PKTGEN_ENCAPSULATABLE_HEADER_H
 
 #include "pktgen/EncapsulatedHeader.h"
+#include "pktgen/MbufPtr.h"
 #include "pktgen/PayloadLength.h"
 
 namespace PktGen
@@ -133,21 +134,15 @@ namespace PktGen
 			return upper.EncapIn(*this);
 		}
 
-		mbuf *Generate() const
-		{
-			size_t parentOff;
-			return Generate(parentOff);
-		}
-
-		mbuf *Generate(size_t & offset) const
+		MbufPtr Generate(size_t & offset) const
 		{
 			size_t mb_len = header.GetLen() + header.GetPayloadLength();
-			mbuf * m = alloc_mbuf(mb_len);
+			MbufPtr m(alloc_mbuf(mb_len));
 			m->m_pkthdr.len = mb_len;
 			m->m_len = mb_len;
 
 			offset = 0;
-			FillPacket(m, offset);
+			FillPacket(m.get(), offset);
 			return m;
 		}
 

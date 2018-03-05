@@ -139,7 +139,7 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp4)
 
 	// Pass an mbuf based on our template to tcp_lro_rx(), and test the return
 	// value to confirm that tcp_lro_rx() accepted the mbuf.
-	int ret = tcp_lro_rx(&lc, pktTemplate.Generate(), 0);
+	int ret = tcp_lro_rx(&lc, pktTemplate.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	// Flush tcp_lro.  This should cause the mbuf input above to be flushed
@@ -201,7 +201,7 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 
 	// Pass an mbuf based on our template to tcp_lro_rx(), and test the return
 	// value to confirm that tcp_lro_rx() accepted the mbuf.
-	int ret = tcp_lro_rx(&lc, pktTemplate.Generate(), 0);
+	int ret = tcp_lro_rx(&lc, pktTemplate.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	// Flush tcp_lro.  This should cause the mbuf input above to be flushed
@@ -251,13 +251,9 @@ TEST_F(TcpLroSampleTestSuite, TestBadIpHeaderLen)
 	lc.ifp = mockIfp.GetIfp();
 
 	// Send the invalid frame to tcp_lro_rx() and confirm that it is rejected
-	struct mbuf * m = pkt.Generate();
-	int ret = tcp_lro_rx(&lc, m, 0);
+	MbufPtr m = pkt.Generate();
+	int ret = tcp_lro_rx(&lc, m.get(), 0);
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
-
-	// When tcp_lro_rx() rejects a frame the caller retains ownership of the
-	// mbuf, so free it now that we're done with it.
-	m_freem(m);
 
 	tcp_lro_free(&lc);
 }
@@ -399,10 +395,10 @@ TYPED_TEST(TcpLroTestSuite, TestMerge2Tcp4)
 
 	// Send the two frames in sequence to tcp_lro_rx() and verify the
 	// return value from each call.
-	int ret = tcp_lro_rx(&this->lc, pktTemplate1.Generate(), 0);
+	int ret = tcp_lro_rx(&this->lc, pktTemplate1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, pktTemplate2.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, pktTemplate2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	// Flush tcp_lro.  If LRO is working then if_input() will receive a
@@ -458,7 +454,7 @@ TYPED_TEST(TcpLroTestSuite, TestFlushInactive)
 
 	// Begin the testcase.
 
-	int ret = tcp_lro_rx(&this->lc, pkt1.Generate(), 0);
+	int ret = tcp_lro_rx(&this->lc, pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	// This call will occur before the timeout and will not flush the packet.
@@ -509,10 +505,10 @@ TYPED_TEST(TcpLroTestSuite, TestMergeAckData)
 
 	// Send the two frames in sequence to tcp_lro_rx().  Verify the return
 	// value from each call.
-	int ret = tcp_lro_rx(&this->lc, pktTemplate1.Generate(), 0);
+	int ret = tcp_lro_rx(&this->lc, pktTemplate1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, pktTemplate2.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, pktTemplate2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	// Flush tcp_lro.  If LRO is working then if_input() will receive a
@@ -547,11 +543,10 @@ TYPED_TEST(TcpLroTestSuite, TestIncrAck)
 
 	// Send the two frames in sequence to tcp_lro_rx().  Test the return
 	// value from each call.
-	int ret = tcp_lro_rx(&this->lc, pkt1.Generate(), 0);
+	int ret = tcp_lro_rx(&this->lc, pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	// tcp_lro_rx() will detect the dup ACK here
-	ret = tcp_lro_rx(&this->lc, pkt2.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, pkt2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	tcp_lro_flush_all(&this->lc);
@@ -586,10 +581,10 @@ TYPED_TEST(TcpLroTestSuite, TestIncrPureAck)
 
 	// Send the two frames in sequence to tcp_lro_rx().  Test the return
 	// value from each call.
-	int ret = tcp_lro_rx(&this->lc, pkt1.Generate(), 0);
+	int ret = tcp_lro_rx(&this->lc, pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, pkt2.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, pkt2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	tcp_lro_flush_all(&this->lc);
@@ -715,13 +710,12 @@ TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1
 
 	// Send the two frames in sequence to tcp_lro_rx().  Test the return
 	// value from each call.
-	int ret = tcp_lro_rx(&this->lc, pkt1.Generate(), 0);
+	int ret = tcp_lro_rx(&this->lc, pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	struct mbuf * m = pkt2.Generate();
-	ret = tcp_lro_rx(&this->lc, m, 0);
+	MbufPtr m = pkt2.Generate();
+	ret = tcp_lro_rx(&this->lc, m.get(), 0);
 	ASSERT_EQ(ret, failCode);
-	m_freem(m);
 }
 
 TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
@@ -760,16 +754,16 @@ TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 	// Begin the testcase
 	int ret;
 
-	ret = tcp_lro_rx(&this->lc, flow1_pkt1.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, flow1_pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, flow2_pkt1.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, flow2_pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, flow1_pkt2.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, flow1_pkt2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, flow2_pkt2.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, flow2_pkt2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	tcp_lro_flush_all(&this->lc);
@@ -799,10 +793,10 @@ TYPED_TEST(TcpLroTestSuite, TestTwoVlanFlows)
 	// Begin the testcase
 	int ret;
 
-	ret = tcp_lro_rx(&this->lc, flow1_pkt1.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, flow1_pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, flow2_pkt1.Generate(), 0);
+	ret = tcp_lro_rx(&this->lc, flow2_pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	tcp_lro_flush_all(&this->lc);
@@ -817,8 +811,7 @@ TYPED_TEST(TcpLroTestSuite, TestForwardingEnabled)
 	ipforwarding = 1;
 	ip6_forwarding = 1;
 
-	struct mbuf * m = pkt.Generate();
-	int ret = tcp_lro_rx(&this->lc, m, 0);
+	MbufPtr m = pkt.Generate();
+	int ret = tcp_lro_rx(&this->lc, m.get(), 0);
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
-	m_freem(m);
 }
