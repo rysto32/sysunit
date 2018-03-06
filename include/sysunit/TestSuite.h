@@ -36,8 +36,8 @@ namespace SysUnit
 	class TestSuite : public testing::Test
 	{
 	public:
-		void SetUp();
-		void TearDown();
+		void SetUp() final;
+		void TearDown() final;
 
 		virtual void TestCaseSetUp();
 		virtual void TestCaseTearDown();
