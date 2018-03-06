@@ -48,7 +48,7 @@ public:
 	void ExpectHeader(const Header & h, struct ip * expected)
 	{
 		MbufPtr m = h.Generate();
-		auto * ip = GetMbufHeader<struct ip>(m.get(), 0);
+		auto * ip = GetMbufHeader<struct ip>(m);
 
 		EXPECT_EQ(ip->ip_v, expected->ip_v);
 		EXPECT_EQ(ip->ip_hl, expected->ip_hl);
@@ -94,7 +94,7 @@ public:
 
 		EXPECT_EQ(m->m_pkthdr.len, totalLen);
 
-		struct ip * ip = GetMbufHeader<struct ip>(m.get(), 0);
+		struct ip * ip = GetMbufHeader<struct ip>(m);
 		EXPECT_EQ(ntoh(ip->ip_len), totalLen);
 	}
 };
@@ -216,7 +216,7 @@ TEST_F(Ipv4HeaderTestSuite, TestNext)
 	auto p3 = p1.Retransmission();
 
 	MbufPtr m = p1.Generate();
-	struct ip * expected = GetMbufHeader<ip>(m.get(), 0);
+	struct ip * expected = GetMbufHeader<struct ip>(m);
 
 	expected->ip_id = htons(firstId + 1);
 

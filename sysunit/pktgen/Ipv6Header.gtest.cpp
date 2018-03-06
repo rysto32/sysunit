@@ -48,7 +48,7 @@ public:
 	void ExpectHeader(const Header & h, struct ip6_hdr * expected)
 	{
 		MbufPtr m = h.Generate();
-		auto * ip = GetMbufHeader<struct ip6_hdr>(m.get(), 0);
+		auto * ip = GetMbufHeader<struct ip6_hdr>(m);
 
 		EXPECT_EQ(ip->ip6_vfc, expected->ip6_vfc);
 		EXPECT_EQ(ip->ip6_flow & IPV6_FLOWLABEL_MASK, expected->ip6_flow & IPV6_FLOWLABEL_MASK);
@@ -87,7 +87,7 @@ public:
 
 		EXPECT_EQ(m->m_pkthdr.len, totalLen);
 
-		struct ip6_hdr * ip = GetMbufHeader<struct ip6_hdr>(m.get(), 0);
+		struct ip6_hdr * ip = GetMbufHeader<struct ip6_hdr>(m);
 		EXPECT_EQ(ntoh(ip->ip6_plen), expectedPayload);
 	}
 };
@@ -186,7 +186,7 @@ TEST_F(Ipv6HeaderTestSuite, TestNext)
 	auto p3 = p1.Retransmission();
 
 	MbufPtr m = p1.Generate();
-	struct ip6_hdr * expected = GetMbufHeader<ip6_hdr>(m.get(), 0);
+	struct ip6_hdr * expected = GetMbufHeader<struct ip6_hdr>(m);
 
 	ExpectHeader(p2, expected);
 	ExpectHeader(p3, expected);

@@ -44,7 +44,7 @@ class EthernetHeaderTestSuite : public SysUnit::TestSuite
 public:
 	void CheckMbufMatches(struct mbuf * m, const struct ether_header * expected)
 	{
-		auto * eh = GetMbufHeader<struct ether_header>(m, 0);
+		auto * eh = GetMbufHeader<struct ether_header>(m);
 		EXPECT_EQ(eh->ether_dhost[0], expected->ether_dhost[0]);
 		EXPECT_EQ(eh->ether_dhost[1], expected->ether_dhost[1]);
 		EXPECT_EQ(eh->ether_dhost[2], expected->ether_dhost[2]);
@@ -163,7 +163,7 @@ TEST_F(EthernetHeaderTestSuite, TestNext)
 	auto p3 = p1.Retransmission();
 
 	MbufPtr m = p1.Generate();
-	struct ether_header *expected = GetMbufHeader<ether_header>(m.get(), 0);
+	struct ether_header *expected = GetMbufHeader<struct ether_header>(m);
 
 	ExpectTemplateMatches(p2, expected, 56);
 	ExpectTemplateMatches(p3, expected, 56);

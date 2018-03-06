@@ -239,8 +239,8 @@ namespace PktGen
 		return WrapPacketTemplate(MakePacketTemplate(rest...));
 	}
 
-	template <typename T>
-	inline T * GetMbufHeader(mbuf * m, size_t offset)
+	template <typename T, typename Mbuf>
+	inline T * GetMbufHeader(const Mbuf & m, size_t offset = 0)
 	{
 		return reinterpret_cast<T*>(m->m_data + offset);
 	}
