@@ -39,6 +39,7 @@ extern "C" {
 
 #include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Layer.h"
+#include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/L4Fields.h"
 #include "pktgen/PayloadLength.h"
