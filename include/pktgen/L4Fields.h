@@ -61,7 +61,7 @@ namespace PktGen
 		return [x](auto & h) { h.SetWindow(x); };
 	}
 
-	// Note: checksum() has a compatible definition in TcpHeader.h
+	// Note: checksum() has a compatible definition in L3Header.h
 
 	auto inline urp(uint16_t x)
 	{
