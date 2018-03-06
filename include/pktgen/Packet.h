@@ -31,6 +31,8 @@
 
 #include "fake/mbuf.h"
 
+#include "pktgen/MbufPtr.h"
+
 extern "C" {
 #include <kern_include/sys/types.h>
 #include <kern_include/netinet/in.h>
