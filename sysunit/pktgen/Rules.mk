@@ -14,6 +14,7 @@ TESTS := \
 	EthernetHeader \
 	Ipv4Header \
 	Ipv6Header \
+	TcpHeader \
 
 MBUF_LIBS := \
 	fake_mbuf \
@@ -37,4 +38,7 @@ TEST_IPV6HEADER_SRCS := \
 	Ipv6Addr.cpp \
 
 TEST_IPV6HEADER_LIBS := \
+	$(MBUF_LIBS) \
+
+TEST_TCPHEADER_LIBS := \
 	$(MBUF_LIBS) \
