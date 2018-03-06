@@ -182,14 +182,14 @@ TEST_F(Ipv4HeaderTestSuite, TestMutate)
 	};
 
 	auto p2 = p1.WithHeader(Layer::L3).Fields(
-	        ipVersion(ntoh(expected2.ip_v)),
-	        headerLength(ntoh(expected2.ip_hl)),
-	        tos(ntoh(expected2.ip_tos)),
-	        id(ntoh(expected2.ip_id)),
-	        fragOffset(ntoh(expected2.ip_off)),
-	        ttl(ntoh(expected2.ip_ttl)),
-	        proto(ntoh(expected2.ip_p)),
-	        checksum(ntoh(expected2.ip_sum)),
+	        ipVersion(4),
+	        headerLength(7),
+	        tos(2),
+	        id(85),
+	        fragOffset(47),
+	        ttl(64),
+	        proto(6),
+	        checksum(0x8848),
 	        src("16.17.18.19"),
 	        dst("32.33.34.35")
 	);

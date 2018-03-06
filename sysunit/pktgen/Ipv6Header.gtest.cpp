@@ -160,8 +160,8 @@ TEST_F(Ipv6HeaderTestSuite, TestMutate)
 	        ipVersion(4),
 	        trafficClass(0x96),
 	        flow(0x55),
-	        hopLimit(ntoh(expected2.ip6_hlim)),
-	        proto(ntoh(expected2.ip6_nxt)),
+	        hopLimit(251),
+	        proto(10),
 	        src("ef34::"),
 	        dst("8948::")
 	);
