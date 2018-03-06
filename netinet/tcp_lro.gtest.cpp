@@ -163,7 +163,7 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 		),
 	     Ipv6Header()
 	        .With(
-	            src("05:58::87:32:44"),
+	            src("0558::8732:44"),
 		    dst("30::01")
 		 ),
 	    TcpHeader()
@@ -348,7 +348,7 @@ Ipv6TemplateType TcpLroTestSuite<Ipv6TemplateType>::GetNetworkLayerTemplate()
 {
 	return Ipv6Header()
 	    .With(
-	        src("05:58::87:32:44"),
+	        src("0558::4787:3632:0f44"),
 	        dst("30::01")
 	    );
 }
