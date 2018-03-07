@@ -66,13 +66,11 @@ namespace PktGen
 	template <typename Setter>
 	class PayloadField
 	{
-		std::vector<uint8_t> payload;
 		Setter setter;
 
 	public:
-		PayloadField(std::vector<uint8_t> && p, Setter s)
-		  : payload(p),
-		    setter(s)
+		PayloadField(Setter s)
+		  : setter(s)
 		{
 		}
 
@@ -82,7 +80,7 @@ namespace PktGen
 		template <typename Header>
 		ApplyReturn operator()(Header & h) const
 		{
-			setter(h, payload);
+			setter(h);
 			return DownwardFieldGenerator(h.GetLen());
 		}
 	};

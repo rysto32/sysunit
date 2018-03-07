@@ -75,6 +75,15 @@ namespace PktGen
 				payload.push_back(ch);
 		}
 
+		void SetLength(size_t s)
+		{
+			if (s <= payload.size()) {
+				payload.resize(s);
+			} else {
+				throw std::runtime_error("Increasing length not supported yet");
+			}
+		}
+
 		void FillPacket(mbuf * m, size_t & offset) const
 		{
 			auto * pl = GetMbufHeader<uint8_t>(m, offset);
@@ -151,8 +160,7 @@ namespace PktGen
 
 	auto inline payload(PayloadVector && p)
 	{
-		return PayloadField(std::move(p),
-		    [](auto & h, const PayloadVector & p) { h.SetPayload(p); });
+		return PayloadField([p](auto & h) { h.SetPayload(p); });
 	}
 
 	auto inline payload()
@@ -178,8 +186,7 @@ namespace PktGen
 
 	auto inline appendPayload(PayloadVector && p)
 	{
-		return PayloadField(std::move(p),
-		    [](auto & h, const PayloadVector & p) { h.AppendPayload(p); });
+		return PayloadField([p](auto & h) { h.AppendPayload(p); });
 	}
 
 	auto inline appendPayload(uint8_t byte, size_t count = 1)
@@ -196,6 +203,11 @@ namespace PktGen
 	{
 		std::string str(p);
 		return appendPayload(str, str.size());
+	}
+
+	auto inline length(size_t size)
+	{
+		return PayloadField([size] (auto & h) { h.SetLength(size); });
 	}
 }
 

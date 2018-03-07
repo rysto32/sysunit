@@ -202,7 +202,7 @@ TEST_F(TcpHeaderTestSuite, TestNext)
 			.With(payload(0x00, payloadLen))
 	);
 
-	auto p2 = p1.Next().WithHeader(Layer::PAYLOAD).Fields(payload(0x00, 0));
+	auto p2 = p1.Next().WithHeader(Layer::PAYLOAD).Fields(length(0));
 
 	MbufPtr m = p1.Generate();
 	struct tcphdr * expected = GetMbufHeader<struct tcphdr>(m);
