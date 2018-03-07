@@ -683,6 +683,8 @@ TYPED_TEST(TcpLroTestSuite, TestOoOSeqOffByOne)
 	this->TestRejectSecond(pkt1, pkt2);
 }
 
+// Send a normal TCP packet followed by one with the IP version field set to an
+// invalid value.  Validate that tcp_lro rejects the second packet.
 TYPED_TEST(TcpLroTestSuite, TestBadIpVersion)
 {
 	auto pkt1 = this->GetPayloadTemplate()
@@ -692,6 +694,8 @@ TYPED_TEST(TcpLroTestSuite, TestBadIpVersion)
 
 	this->TestRejectSecond(pkt1, pkt2, TCP_LRO_NOT_SUPPORTED);
 
+	// tcp_lro_rx() bails out so early the first mbuf is never flushed, so
+	// do it manually here.
 	tcp_lro_flush_all(&this->lc);
 }
 
@@ -719,6 +723,9 @@ TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1
 	ASSERT_EQ(ret, failCode);
 }
 
+// Generate packets from two different flows and send them to tcp_lro_rx(),
+// alternating between flows.  Verify that both flows have their input merged
+// into a single packet that is sent up the stack.
 TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 {
 	auto flow1_pkt1 = this->GetPayloadTemplate()
@@ -740,8 +747,8 @@ TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 	auto flow2_expect = flow2_pkt1.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow2_payload2));
 
 	// Note that the order in which these expectations are listed does not
-	// imply that the packets must arrive in this order.  You have to explicit
-	// sequence expectations to imply an ordering.
+	// imply that the packets must arrive in this order.  You have to
+	// explicitly sequence expectations to imply an ordering.
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow1_expect)))
 	    .Times(1);
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow2_expect)))
@@ -770,6 +777,12 @@ TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 	tcp_lro_flush_all(&this->lc);
 }
 
+// Send two packets that have the same 5-tuple and where the second has the
+// sequence number following the first, but has a different vlan tag.  Confirm
+// that LRO does not merge these packets.  If the vlan interfaces are in
+// different VNETs then these packets could actually represent distinct flows.
+// As LRO can't know whether that configuration is in use, it has to err of the
+// side of correctness and assume they represent different flows.
 TYPED_TEST(TcpLroTestSuite, TestTwoVlanFlows)
 {
 	auto flow1_pkt1 = this->GetPayloadTemplate()
