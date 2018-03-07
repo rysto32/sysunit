@@ -357,11 +357,11 @@ auto TcpLroTestSuite<IPv6>::GetNetworkLayerTemplate()
 typedef ::testing::Types<IPv4, IPv6> NetworkTypes;
 TYPED_TEST_CASE(TcpLroTestSuite, NetworkTypes);
 
-// Create two packets from the same TCP/IPv4 flow in sequence and send them
+// Create two packets from the same TCP/IP flow in sequence and send them
 // into tcp_lro.  Verify that that LRO merges the frames into a single larger
 // frame with the headers of the first packet and a payload containing the
 // combined payloads of both frames.
-TYPED_TEST(TcpLroTestSuite, TestMerge2Tcp4)
+TYPED_TEST(TcpLroTestSuite, TestMerge2Tcp)
 {
 	// Create a packet template.  This template describes a TCP/IP packet
 	// with a payload of 5 bytes (the characters "12345").  The mbuf will have
