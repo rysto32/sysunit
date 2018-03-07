@@ -729,22 +729,39 @@ TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1
 TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 {
 	auto flow1_pkt1 = this->GetPayloadTemplate()
-	    .WithHeader(Layer::L4).Fields(src(5), dst(6))
-	    .WithHeader(Layer::PAYLOAD).Fields(payload("flow1"));
+		.WithHeader(Layer::L4).Fields(src(5), dst(6), window(128))
+		.WithHeader(Layer::PAYLOAD).Fields(payload("flow1"));
 
 	auto flow2_pkt1 = this->GetPayloadTemplate()
-	    .WithHeader(Layer::L4).Fields(src(104), dst(1028))
-	    .WithHeader(Layer::PAYLOAD).Fields(payload("flow2"));
+		.WithHeader(Layer::L4).Fields(src(104), dst(1028), window(128))
+		.WithHeader(Layer::PAYLOAD).Fields(payload("flow2"));
 
+	// Shrink the advertised window and ACK more data in the second
+	// packet in this flow.
 	const char * flow1_payload2 = "more";
-	auto flow1_pkt2 = flow1_pkt1.Next().WithHeader(Layer::PAYLOAD).Fields(payload(flow1_payload2));
+	auto flow1_pkt2 = flow1_pkt1.Next()
+		.WithHeader(Layer::L4).Fields(incrWindow(-64), incrAck(+100))
+		.WithHeader(Layer::PAYLOAD).Fields(payload(flow1_payload2));
 
+	// Advertise a larger window in this packet.
 	const char * flow2_payload2 = "yet more";
-	auto flow2_pkt2 = flow2_pkt1.Next().WithHeader(Layer::PAYLOAD).Fields(payload(flow2_payload2));
+	auto flow2_pkt2 = flow2_pkt1.Next()
+		.WithHeader(Layer::L4).Fields(incrWindow(+72))
+		.WithHeader(Layer::PAYLOAD).Fields(payload(flow2_payload2));
 
-	auto flow1_expect = flow1_pkt1.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow1_payload2));
+	// We expect if_input to be called with a single TCP packet with the
+	// same header as the first packet but with the smaller window and
+	// large th_ack, along with the payloads of the two packets merged.
+	auto flow1_expect = flow1_pkt1
+		.WithHeader(Layer::L4).Fields(incrWindow(-64), incrAck(+100))
+		.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow1_payload2));
 
-	auto flow2_expect = flow2_pkt1.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow2_payload2));
+	// We expect if_input to be called with a single TCP packet with the
+	// same header as the first packet but with the larger window and the
+	// payloads of the two packets merged.
+	auto flow2_expect = flow2_pkt1
+		.WithHeader(Layer::L4).Fields(incrWindow(+72))
+		.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow2_payload2));
 
 	// Note that the order in which these expectations are listed does not
 	// imply that the packets must arrive in this order.  You have to

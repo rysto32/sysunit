@@ -61,6 +61,11 @@ namespace PktGen
 		return [x](auto & h) { h.SetWindow(x); };
 	}
 
+	auto inline incrWindow(uint16_t x)
+	{
+		return [x](auto & h) { h.SetWindow(h.GetWindow() + x); };
+	}
+
 	// Note: checksum() has a compatible definition in L3Header.h
 
 	auto inline urp(uint16_t x)
