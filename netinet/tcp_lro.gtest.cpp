@@ -920,3 +920,36 @@ TYPED_TEST(TcpLroTestSuite, TestOoOWindowUpdate)
 
 	tcp_lro_flush_all(&this->lc);
 }
+
+// Send two ACKs to LRO where the second ACK is stale and acks an older sequence
+// number.  Verify that LRO ignores the second ACK but does not reject it or
+// flush the flow.
+TYPED_TEST(TcpLroTestSuite, TestStaleAck)
+{
+	auto ack1 = this->GetPayloadTemplate()
+		.WithHeader(Layer::L4).Fields(
+			seq(654654),
+			ack(169),
+			window(64)
+		);
+
+	auto ack2 = ack1.Next()
+		.WithHeader(Layer::L4).Fields(incrAck(+64));
+
+	MockTime::ExpectGetMicrotime({.tv_sec = 265469, .tv_usec = 9874});
+
+	int ret = tcp_lro_rx(&this->lc, ack2.GenerateRawMbuf(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, ack1.GenerateRawMbuf(), 0);
+	ASSERT_EQ(ret, 0);
+
+	// if_input() should not have been called due to the tcp_lro_rx() calls
+	// above.  We expect LRO to hold the packet until we flush it, so
+	// set the expectation late to check that if_input() isn't getting
+	// called sooner than expected.
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(ack2)))
+		.Times(1);
+
+	tcp_lro_flush_all(&this->lc);
+}
