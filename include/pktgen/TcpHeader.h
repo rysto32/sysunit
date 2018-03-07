@@ -92,7 +92,7 @@ namespace PktGen
 		    th_off(sizeof(struct tcphdr) / sizeof(uint32_t)),
 		    th_x2(0),
 		    th_flags(TH_ACK),
-		    th_win(4),
+		    th_win(0),
 		    th_sum(0),
 		    th_urp(0),
 		    checksumVerified(false),

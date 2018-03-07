@@ -127,7 +127,7 @@ TEST_F(TcpHeaderTestSuite, TestDefaults)
 		.th_urp = htons(0),
 	};
 
-	auto p = BuildHeader(expected);
+	auto p = PacketTemplate(TcpHeader());
 	ExpectHeader(p, &expected);
 }
 
