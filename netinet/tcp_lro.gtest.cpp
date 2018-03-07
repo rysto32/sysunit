@@ -258,7 +258,7 @@ TEST_F(TcpLroSampleTestSuite, TestBadIpHeaderLen)
 	tcp_lro_free(&lc);
 }
 
-template <typename NetworkLayerTemplate>
+template <typename L3Proto>
 class TcpLroTestSuite : public SysUnit::TestSuite
 {
 public:
@@ -287,7 +287,7 @@ public:
 	// Generate a template for the network (L3) layer header.  This will
 	// have specializations for IPv4 and IPv6 tests to generate the correct
 	// header.
-	static NetworkLayerTemplate GetNetworkLayerTemplate();
+	static auto GetNetworkLayerTemplate();
 
 	// For convenience, this function can be called to create a
 	// packet template for a pure TCP packet (no payload)
@@ -326,12 +326,11 @@ public:
 	void TestRejectSecond(const PktTemplate & pkt1, const PktTemplate & pkt2, int failCode = TCP_LRO_CANNOT);
 };
 
-typedef std::invoke_result<decltype(Ipv4Header)>::type Ipv4TemplateType;
-typedef std::invoke_result<decltype(Ipv6Header)>::type Ipv6TemplateType;
+struct IPv4 {};
 
 // Generate an IPv4 header template.
 template <>
-Ipv4TemplateType TcpLroTestSuite<Ipv4TemplateType>::GetNetworkLayerTemplate()
+auto TcpLroTestSuite<IPv4>::GetNetworkLayerTemplate()
 {
 	return Ipv4Header()
 	    .With(
@@ -342,9 +341,11 @@ Ipv4TemplateType TcpLroTestSuite<Ipv4TemplateType>::GetNetworkLayerTemplate()
 	    );
 }
 
+struct IPv6 {};
+
 // Generate a IPv6 header template.
 template <>
-Ipv6TemplateType TcpLroTestSuite<Ipv6TemplateType>::GetNetworkLayerTemplate()
+auto TcpLroTestSuite<IPv6>::GetNetworkLayerTemplate()
 {
 	return Ipv6Header()
 	    .With(
@@ -353,7 +354,7 @@ Ipv6TemplateType TcpLroTestSuite<Ipv6TemplateType>::GetNetworkLayerTemplate()
 	    );
 }
 
-typedef ::testing::Types<Ipv4TemplateType, Ipv6TemplateType> NetworkTypes;
+typedef ::testing::Types<IPv4, IPv6> NetworkTypes;
 TYPED_TEST_CASE(TcpLroTestSuite, NetworkTypes);
 
 // Create two packets from the same TCP/IPv4 flow in sequence and send them
