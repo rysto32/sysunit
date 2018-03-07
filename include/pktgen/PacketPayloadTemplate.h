@@ -170,9 +170,10 @@ namespace PktGen
 		return payload(UnnestedPayloadTemplate::FillPayload(str, count));
 	}
 
-	auto inline payload(const std::string & p)
+	auto inline payload(const char * p)
 	{
-		return payload(p, p.size());
+		std::string str(p);
+		return payload(str, str.size());
 	}
 
 	auto inline appendPayload(PayloadVector && p)
@@ -191,9 +192,10 @@ namespace PktGen
 		return appendPayload(UnnestedPayloadTemplate::FillPayload(str, count));
 	}
 
-	auto inline appendPayload(const std::string & p)
+	auto inline appendPayload(const char * p)
 	{
-		return appendPayload(p, p.size());
+		std::string str(p);
+		return appendPayload(str, str.size());
 	}
 }
 
