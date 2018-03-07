@@ -15,6 +15,7 @@ TESTS := \
 	Ipv4Header \
 	Ipv6Header \
 	PacketEncapsulation \
+	PacketPayload \
 	TcpHeader \
 
 MBUF_LIBS := \
@@ -46,6 +47,9 @@ TEST_PACKETENCAPSULATION_SRCS := \
 	Ipv6Addr.cpp \
 
 TEST_PACKETENCAPSULATION_LIBS := \
+	$(MBUF_LIBS) \
+
+TEST_PACKETPAYLOAD_LIBS := \
 	$(MBUF_LIBS) \
 
 TEST_TCPHEADER_LIBS := \
