@@ -815,3 +815,36 @@ TYPED_TEST(TcpLroTestSuite, TestForwardingEnabled)
 	int ret = tcp_lro_rx(&this->lc, m.get(), 0);
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
 }
+
+// Send a data frame followed by a TCP window update.  Confirm that LRO merges
+// the window update into the existing packet and updates the TCP window value.
+TYPED_TEST(TcpLroTestSuite, TestWindowUpdate)
+{
+	auto pkt = this->GetPayloadTemplate()
+		.WithHeader(Layer::L4).Fields(
+			seq(265415),
+			ack(39684),
+			window(64)
+		).WithHeader(Layer::PAYLOAD).Fields(
+			payload("abcd", 1000)
+		);
+
+	auto winUpdate = pkt.Next()
+		.WithHeader(Layer::L4).Fields(window(96))
+		.WithHeader(Layer::PAYLOAD).Fields(length(0));
+
+	auto expected = pkt.WithHeader(Layer::L4).Fields(window(96));
+
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
+		.Times(1);
+
+	MockTime::ExpectGetMicrotime({.tv_sec = 265469, .tv_usec = 9874});
+
+	int ret = tcp_lro_rx(&this->lc, pkt.GenerateRawMbuf(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, winUpdate.GenerateRawMbuf(), 0);
+	ASSERT_EQ(ret, 0);
+
+	tcp_lro_flush_all(&this->lc);
+}
