@@ -28,6 +28,8 @@
 
 #include "pktgen/PacketPayload.h"
 
+#include "pktgen/Ipv4Header.h"
+#include "pktgen/Ipv6Header.h"
 #include "pktgen/Packet.h"
 
 #include "sysunit/TestSuite.h"
@@ -192,4 +194,150 @@ TEST_F(PacketPayloadTestSuite, TestReduceLength)
 
 	m = p3.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 0);
+}
+
+template <typename L3Proto>
+class EncapsulatedPayloadTestSuite : public SysUnit::TestSuite
+{
+public:
+	void CheckLengthField(struct mbuf * m, uint16_t payloadLen);
+	auto GetL3Header();
+};
+
+struct IPv4 {};
+
+template <>
+void EncapsulatedPayloadTestSuite<IPv4>::CheckLengthField(struct mbuf * m, uint16_t payloadLen)
+{
+	uint16_t expectedLen;
+
+	expectedLen = sizeof(struct ip) + payloadLen;
+
+	ASSERT_EQ(m->m_pkthdr.len, expectedLen);
+
+	struct ip * ip = GetMbufHeader<struct ip>(m);
+	EXPECT_EQ(ntoh(ip->ip_len), expectedLen);
+}
+
+template <>
+auto EncapsulatedPayloadTestSuite<IPv4>::GetL3Header()
+{
+	return Ipv4Header();
+}
+
+struct IPv6 {};
+
+template <>
+void EncapsulatedPayloadTestSuite<IPv6>::CheckLengthField(struct mbuf * m, uint16_t payloadLen)
+{
+	uint16_t expectedLen;
+
+	expectedLen = sizeof(struct ip6_hdr) + payloadLen;
+
+	ASSERT_EQ(m->m_pkthdr.len, expectedLen);
+
+	struct ip6_hdr * ip = GetMbufHeader<struct ip6_hdr>(m);
+	EXPECT_EQ(ntoh(ip->ip6_plen), payloadLen);
+}
+
+template <>
+auto EncapsulatedPayloadTestSuite<IPv6>::GetL3Header()
+{
+	return Ipv6Header();
+}
+
+typedef ::testing::Types<IPv4, IPv6> NetworkTypes;
+TYPED_TEST_CASE(EncapsulatedPayloadTestSuite, NetworkTypes);
+
+// Generate a packet with an L3 header and a payload.  Verify that the L3
+// header's length field properly reflects the size of the payload after
+// applying a variety of mutators that accept a vector of bytes.
+TYPED_TEST(EncapsulatedPayloadTestSuite, TestVectorPayload)
+{
+	auto p = PacketTemplate(
+		this->GetL3Header(),
+		PacketPayload().With(payload({9, 8, 7, 6}))
+	);
+
+	MbufPtr m = p.Generate();
+	this->CheckLengthField(m.get(), 4);
+
+	auto p2 = p.WithHeader(Layer::PAYLOAD).Fields(appendPayload({1,2,3,4,5}));
+
+	m = p2.Generate();
+	this->CheckLengthField(m.get(), 9);
+
+	auto p3 = p.With(payload({1, 2, 3}));
+
+	m = p3.Generate();
+	this->CheckLengthField(m.get(), 3);
+}
+
+// Generate a packet with an L3 header and a payload.  Verify that the L3
+// header's length field properly reflects the size of the payload after
+// applying a variety of mutators that accept a byte and an option repeat count.
+TYPED_TEST(EncapsulatedPayloadTestSuite, TestBytePayload)
+{
+	auto p = PacketTemplate(
+		this->GetL3Header(),
+		PacketPayload().With(payload(0x67))
+	);
+
+	MbufPtr m = p.Generate();
+	this->CheckLengthField(m.get(), 1);
+
+	auto p2 = p.With(appendPayload(0x77, 3));
+
+	m = p2.Generate();
+	this->CheckLengthField(m.get(), 4);
+
+	auto p3 = p.WithHeader(Layer::PAYLOAD).Fields(payload(0x11, 10));
+
+	m = p3.Generate();
+	this->CheckLengthField(m.get(), 10);
+}
+
+// Generate a packet with an L3 header and a payload.  Verify that the L3
+// header's length field properly reflects the size of the payload after
+// applying a variety of mutators that accept a string
+TYPED_TEST(EncapsulatedPayloadTestSuite, TestStringPayload)
+{
+	auto p = PacketTemplate(
+		this->GetL3Header(),
+		PacketPayload().With(payload("kfjuw", 10))
+	);
+
+	MbufPtr m = p.Generate();
+	this->CheckLengthField(m.get(), 10);
+
+	auto p2 = p.WithHeader(Layer::PAYLOAD).Fields(appendPayload("8596"));
+
+	m = p2.Generate();
+	this->CheckLengthField(m.get(), 14);
+
+	auto p3 = p.With(payload("fmjdlkjfdklfj", 39));
+
+	m = p3.Generate();
+	this->CheckLengthField(m.get(), 39);
+}
+
+// Generate a packet with an L3 header and a payload.  Verify that the L3
+// header's length field properly reflects the size of the payload after
+// applying a variety of mutators that set the payload's length.
+TYPED_TEST(EncapsulatedPayloadTestSuite, TestSetPayloadLength)
+{
+	auto p = PacketTemplate(
+		this->GetL3Header(),
+		PacketPayload().With(payload("kfjuw", 10))
+	);
+
+	auto p2 = p.WithHeader(Layer::PAYLOAD).Fields(length(6));
+
+	MbufPtr m = p2.Generate();
+	this->CheckLengthField(m.get(), 6);
+
+	auto p3 = p.With(length(0));
+
+	m = p3.Generate();
+	this->CheckLengthField(m.get(), 0);
 }
