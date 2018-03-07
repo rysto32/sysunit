@@ -879,3 +879,44 @@ TYPED_TEST(TcpLroTestSuite, TestWindowUpdate)
 
 	tcp_lro_flush_all(&this->lc);
 }
+
+// Send two window updates in reverse order, such that the second packet
+// advertises a smaller window than the first.  Confirm that LRO will properly
+// ignore the second window update, as it reflects packet reordering in the
+// network.
+TYPED_TEST(TcpLroTestSuite, TestOoOWindowUpdate)
+{
+	auto pkt = this->GetPayloadTemplate()
+		.WithHeader(Layer::L4).Fields(
+			seq(15548),
+			ack(255448),
+			window(64)
+		).WithHeader(Layer::PAYLOAD).Fields(
+			payload("lro")
+		);
+
+	auto winUpdate1 = pkt.Next()
+		.WithHeader(Layer::L4).Fields(incrWindow(128))
+		.WithHeader(Layer::PAYLOAD).Fields(length(0));
+
+	auto winUpdate2 = winUpdate1.Next()
+		.WithHeader(Layer::L4).Fields(incrWindow(256));
+
+	auto expected = pkt.WithHeader(Layer::L4).Fields(incrWindow(128 + 256));
+
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
+		.Times(1);
+
+	MockTime::ExpectGetMicrotime({.tv_sec = 265469, .tv_usec = 9874});
+
+	int ret = tcp_lro_rx(&this->lc, pkt.GenerateRawMbuf(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, winUpdate2.GenerateRawMbuf(), 0);
+	ASSERT_EQ(ret, 0);
+
+	ret = tcp_lro_rx(&this->lc, winUpdate1.GenerateRawMbuf(), 0);
+	ASSERT_EQ(ret, 0);
+
+	tcp_lro_flush_all(&this->lc);
+}
