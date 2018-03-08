@@ -47,6 +47,10 @@ public:
 
 	MOCK_METHOD1(if_input, void(struct mbuf *));
 
+	// This can be used for sequencing other mock method calls.  It doesn't
+	// correspond to any ifnet callback.
+	MOCK_METHOD1(MockSequence, void (int));
+
 	struct ifnet * GetIfp()
 	{
 		return &ifn;

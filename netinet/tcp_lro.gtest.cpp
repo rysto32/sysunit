@@ -763,13 +763,28 @@ TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 		.WithHeader(Layer::L4).Fields(incrWindow(+72))
 		.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow2_payload2));
 
+	Sequence flow1_seq, flow2_seq;
+
+	// LRO should continue to buffer packets until we are in danger of
+	// exceeding IP_MAXPACKET are it is explicitly flushed.  Enforce this
+	// by making a dummy call to MockSequence() after all calls to to
+	// tcp_lro_rx() that we can sequence before the if_input() calls.  This
+	// ensures that gmock will enforce the requirement that packets are not
+	// flushed unnecessarily early.
+	EXPECT_CALL(*this->mockIfp, MockSequence(1))
+		.Times(1)
+		.InSequence(flow1_seq, flow2_seq);
+
 	// Note that the order in which these expectations are listed does not
-	// imply that the packets must arrive in this order.  You have to
-	// explicitly sequence expectations to imply an ordering.
+	// imply that the packets must arrive in this order.  gmock will only
+	// enforce the sequence that we explicitly specify: both of these calls
+	// are only allowed to occur after MockSequence(1) is called.
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow1_expect)))
-	    .Times(1);
+	    .Times(1)
+	    .InSequence(flow1_seq);
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow2_expect)))
-	    .Times(1);
+	    .Times(1)
+	    .InSequence(flow2_seq);
 
 	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 25847});
 	MockTime::ExpectGetMicrotime({.tv_sec = 5489, .tv_usec = 25979});
@@ -790,6 +805,9 @@ TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 
 	ret = tcp_lro_rx(&this->lc, flow2_pkt2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
+
+	// Tell gmock that if_input() may now be called.
+	this->mockIfp->MockSequence(1);
 
 	tcp_lro_flush_all(&this->lc);
 }
@@ -866,8 +884,16 @@ TYPED_TEST(TcpLroTestSuite, TestWindowUpdate)
 
 	auto expected = pkt.WithHeader(Layer::L4).Fields(window(96));
 
-	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
-		.Times(1);
+	{
+		InSequence seq;
+
+		// Use a dummy method call so that we can force gmock to
+		// verify that the window update will not flush the data packet.
+		EXPECT_CALL(*this->mockIfp, MockSequence(1)).Times(1);
+
+		EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
+			.Times(1);
+	}
 
 	MockTime::ExpectGetMicrotime({.tv_sec = 265469, .tv_usec = 9874});
 
@@ -876,6 +902,9 @@ TYPED_TEST(TcpLroTestSuite, TestWindowUpdate)
 
 	ret = tcp_lro_rx(&this->lc, winUpdate.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
+
+	// Inform gmock that if_input() can now be called.
+	this->mockIfp->MockSequence(1);
 
 	tcp_lro_flush_all(&this->lc);
 }
@@ -895,11 +924,11 @@ TYPED_TEST(TcpLroTestSuite, TestOoOWindowUpdate)
 			payload("lro")
 		);
 
-	auto winUpdate1 = pkt.Next()
+	auto winUpdate2 = pkt.Next()
 		.WithHeader(Layer::L4).Fields(incrWindow(128))
 		.WithHeader(Layer::PAYLOAD).Fields(length(0));
 
-	auto winUpdate2 = winUpdate1.Next()
+	auto winUpdate1 = winUpdate2.Next()
 		.WithHeader(Layer::L4).Fields(incrWindow(256));
 
 	auto expected = pkt.WithHeader(Layer::L4).Fields(incrWindow(128 + 256));
@@ -912,10 +941,10 @@ TYPED_TEST(TcpLroTestSuite, TestOoOWindowUpdate)
 	int ret = tcp_lro_rx(&this->lc, pkt.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, winUpdate2.GenerateRawMbuf(), 0);
+	ret = tcp_lro_rx(&this->lc, winUpdate1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, winUpdate1.GenerateRawMbuf(), 0);
+	ret = tcp_lro_rx(&this->lc, winUpdate2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
 	tcp_lro_flush_all(&this->lc);
@@ -926,30 +955,39 @@ TYPED_TEST(TcpLroTestSuite, TestOoOWindowUpdate)
 // flush the flow.
 TYPED_TEST(TcpLroTestSuite, TestStaleAck)
 {
-	auto ack1 = this->GetPayloadTemplate()
+	auto ack2 = this->GetPayloadTemplate()
 		.WithHeader(Layer::L4).Fields(
 			seq(654654),
 			ack(169),
 			window(64)
 		);
 
-	auto ack2 = ack1.Next()
+	auto ack1 = ack2.Next()
 		.WithHeader(Layer::L4).Fields(incrAck(+64));
+
+	{
+		InSequence seq;
+
+		// Use a dummy sequencing mock method to ensure that if_input()
+		// is not called earlier than it should be.
+		EXPECT_CALL(*this->mockIfp, MockSequence(1)).Times(1);
+
+		// We expect if_input() to be called once with the fields
+		// from the second ack, but only after tcp_lro_flush_all()
+		EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(ack1)))
+			.Times(1);
+	}
 
 	MockTime::ExpectGetMicrotime({.tv_sec = 265469, .tv_usec = 9874});
 
-	int ret = tcp_lro_rx(&this->lc, ack2.GenerateRawMbuf(), 0);
+	int ret = tcp_lro_rx(&this->lc, ack1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	ret = tcp_lro_rx(&this->lc, ack1.GenerateRawMbuf(), 0);
+	ret = tcp_lro_rx(&this->lc, ack2.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	// if_input() should not have been called due to the tcp_lro_rx() calls
-	// above.  We expect LRO to hold the packet until we flush it, so
-	// set the expectation late to check that if_input() isn't getting
-	// called sooner than expected.
-	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(ack2)))
-		.Times(1);
+	// Tell gmock that if_input() can now be called.
+	this->mockIfp->MockSequence(1);
 
 	tcp_lro_flush_all(&this->lc);
 }
