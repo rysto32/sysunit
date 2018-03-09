@@ -699,6 +699,28 @@ TYPED_TEST(TcpLroTestSuite, TestBadIpVersion)
 	tcp_lro_flush_all(&this->lc);
 }
 
+TYPED_TEST(TcpLroTestSuite, TestNonAck)
+{
+	auto pkt1 = this->GetPayloadTemplate()
+		.WithHeader(Layer::L4).Fields(
+			seq(654654),
+			ack(169),
+			window(64)
+		).WithHeader(Layer::PAYLOAD).Fields(
+			payload("FreeBSD")
+		);
+
+	auto pkt2 = pkt1.Next()
+		.WithHeader(Layer::L4).Fields(
+			incrAck(+256),
+			flags(0)
+		).WithHeader(Layer::PAYLOAD).Fields(
+			payload("DBSeerF")
+		);
+
+	this->TestRejectSecond(pkt1, pkt2);
+}
+
 template <typename NetworkLayerTemplate>
 template <typename PktTemplate>
 void
