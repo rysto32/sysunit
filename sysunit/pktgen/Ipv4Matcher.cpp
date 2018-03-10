@@ -38,7 +38,7 @@ extern "C" {
 
 using testing::MatchResultListener;
 
-namespace PktGen
+namespace PktGen::internal
 {
 	Ipv4Matcher::Ipv4Matcher(const Ipv4Template & h, size_t offset)
 	  : header(h),

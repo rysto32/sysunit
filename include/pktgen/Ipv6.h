@@ -29,7 +29,16 @@
 #ifndef PKTGEN_IPV6_H
 #define PKTGEN_IPV6_H
 
+#include "pktgen/Packet.h"
 #include "pktgen/Ipv6Header.h"
 #include "pktgen/Ipv6Matcher.h"
+
+namespace PktGen
+{
+	auto inline Ipv6Header()
+	{
+		return internal::PacketTemplateWrapper(internal::Ipv6Template());
+	}
+}
 
 #endif

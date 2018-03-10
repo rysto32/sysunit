@@ -26,20 +26,22 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/Ipv4Header.h"
+#include "pktgen/Ipv4.h"
 
-#include "pktgen/EthernetHeader.h"
 #include "pktgen/Packet.h"
 #include "pktgen/PacketPayload.h"
 
 #include "sysunit/TestSuite.h"
 
+#include <arpa/inet.h>
 #include <gtest/gtest.h>
 
 #include <stubs/sysctl.h>
 #include <stubs/uio.h>
 
 using namespace PktGen;
+using internal::GetMbufHeader;
+using internal::ntoh;
 
 class Ipv4HeaderTestSuite : public SysUnit::TestSuite
 {

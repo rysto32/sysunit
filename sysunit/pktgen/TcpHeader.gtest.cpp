@@ -26,10 +26,11 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/TcpHeader.h"
+#include "pktgen/Tcp.h"
 
 #include "pktgen/Packet.h"
 #include "pktgen/PacketPayload.h"
+#include "pktgen/PacketParsing.h"
 
 #include "sysunit/TestSuite.h"
 
@@ -39,6 +40,9 @@
 #include <stubs/uio.h>
 
 using namespace PktGen;
+using internal::GetMbufHeader;
+using internal::hton;
+using internal::ntoh;
 
 class TcpHeaderTestSuite : public SysUnit::TestSuite
 {
@@ -47,14 +51,14 @@ public:
 	{
 		return PacketTemplate(TcpHeader()
 			.With(
-				src(ntohs(tcp.th_sport)),
-				dst(ntohs(tcp.th_dport)),
-				seq(htonl(tcp.th_seq)),
-				ack(htonl(tcp.th_ack)),
-				flags(tcp.th_flags),
-				window(htons(tcp.th_win)),
-				checksum(htons(tcp.th_sum)),
-				urp(htons(tcp.th_urp))
+				src(ntoh(tcp.th_sport)),
+				dst(ntoh(tcp.th_dport)),
+				seq(ntoh(tcp.th_seq)),
+				ack(ntoh(tcp.th_ack)),
+				flags(ntoh(tcp.th_flags)),
+				window(ntoh(tcp.th_win)),
+				checksum(ntoh(tcp.th_sum)),
+				urp(ntoh(tcp.th_urp))
 			 ));
 	}
 

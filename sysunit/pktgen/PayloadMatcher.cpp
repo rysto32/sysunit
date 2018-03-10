@@ -38,7 +38,7 @@
 
 using testing::MatchResultListener;
 
-namespace PktGen
+namespace PktGen::internal
 {
 	PayloadMatcher::PayloadMatcher(const PayloadTemplate & p, size_t off)
 	  : payload(std::move(p)),

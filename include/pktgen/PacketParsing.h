@@ -26,45 +26,50 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/Layer.h"
+#ifndef PKTGEN_PACKET_PARSING_H
+#define PKTGEN_PACKET_PARSING_H
 
-#include <sstream>
-#include <string>
+#include "fake/mbuf.h"
+
+#include <netinet/in.h>
 
 namespace PktGen::internal
 {
-	std::string MakeLayerName(LayerVal l, int nesting)
+	template <typename T, typename Mbuf>
+	inline T * GetMbufHeader(const Mbuf & m, size_t offset = 0)
 	{
-		std::string shortName;
-
-		switch (l) {
-		case LayerVal::L2:
-			shortName = "L2";
-			break;
-		case LayerVal::L3:
-			shortName = "L3";
-			break;
-		case LayerVal::L4:
-			shortName = "L4";
-			break;
-		case LayerVal::PAYLOAD:
-			shortName = "PAYLOAD";
-			break;
-		}
-
-		if (nesting == 1)
-			return shortName;
-
-		std::ostringstream str;
-		str << shortName << "<" << nesting << ">";
-		return str.str();
+		return reinterpret_cast<T*>(m->m_data + offset);
 	}
 
-	namespace Layer
+	inline uint8_t ntoh(uint8_t x)
 	{
-		extern const LayerImpl<LayerVal::L2, 1> L2 = NestedLayer::L2<1>;
-		extern const LayerImpl<LayerVal::L3, 1> L3 = NestedLayer::L3<1>;
-		extern const LayerImpl<LayerVal::L4, 1> L4 = NestedLayer::L4<1>;
-		extern const LayerImpl<LayerVal::PAYLOAD, 1> PAYLOAD = NestedLayer::PAYLOAD<1>;
+		return x;
+	}
+
+	inline uint16_t ntoh(uint16_t x)
+	{
+		return ntohs(x);
+	}
+
+	inline uint32_t ntoh(uint32_t x)
+	{
+		return ntohl(x);
+	}
+
+	inline uint8_t hton(uint8_t x)
+	{
+		return x;
+	}
+
+	inline uint16_t hton(uint16_t x)
+	{
+		return htons(x);
+	}
+
+	inline uint32_t hton(uint32_t x)
+	{
+		return htonl(x);
 	}
 }
+
+#endif

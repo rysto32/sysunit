@@ -29,7 +29,16 @@
 #ifndef PKTGEN_IPV4_H
 #define PKTGEN_IPV4_H
 
+#include "pktgen/Packet.h"
 #include "pktgen/Ipv4Header.h"
 #include "pktgen/Ipv4Matcher.h"
+
+namespace PktGen
+{
+	auto inline Ipv4Header()
+	{
+		return internal::PacketTemplateWrapper(internal::Ipv4Template());
+	}
+}
 
 #endif

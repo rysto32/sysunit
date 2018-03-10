@@ -32,11 +32,13 @@
 #include "fake/mbuf.h"
 
 #include "pktgen/EtherAddr.h"
+#include "pktgen/FieldPropagator.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
-#include "pktgen/Packet.h"
+#include "pktgen/PacketParsing.h"
 
-namespace PktGen {
+namespace PktGen::internal
+{
 
 	class EthernetTemplate
 	{
@@ -154,11 +156,6 @@ namespace PktGen {
 			PrintIndent(depth, "}");
 		}
 	};
-
-	auto inline EthernetHeader()
-	{
-		return PacketTemplateWrapper(EthernetTemplate());
-	}
 }
 
 #endif

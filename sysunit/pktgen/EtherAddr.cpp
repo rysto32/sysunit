@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 
-namespace PktGen
+namespace PktGen::internal
 {
 	EtherAddr::EtherAddr()
 	{

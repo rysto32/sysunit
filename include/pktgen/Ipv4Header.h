@@ -38,14 +38,15 @@ extern "C" {
 #include <kern_include/netinet/ip.h>
 }
 
+#include "pktgen/FieldPropagator.h"
 #include "pktgen/Ipv4Addr.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/PayloadLength.h"
-#include "pktgen/Packet.h"
+#include "pktgen/PacketParsing.h"
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class Ipv4Template
 	{
@@ -289,11 +290,6 @@ namespace PktGen
 			PrintIndent(depth, "}");
 		}
 	};
-
-	auto inline Ipv4Header()
-	{
-		return PacketTemplateWrapper(Ipv4Template());
-	}
 }
 
 #endif

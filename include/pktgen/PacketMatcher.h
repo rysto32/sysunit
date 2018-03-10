@@ -99,7 +99,7 @@ namespace PktGen
 	}
 
 	template <typename... Headers>
-	auto PacketMatcher(const PacketTemplateWrapper<Headers...> wrapper)
+	auto PacketMatcher(const internal::PacketTemplateWrapper<Headers...> wrapper)
 	{
 		return std::apply( [] (const auto &... header)
 			{

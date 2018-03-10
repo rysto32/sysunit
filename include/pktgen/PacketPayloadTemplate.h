@@ -31,14 +31,15 @@
 
 #include "fake/mbuf.h"
 
+#include "pktgen/FieldPropagator.h"
 #include "pktgen/Layer.h"
-#include "pktgen/Packet.h"
+#include "pktgen/PacketParsing.h"
 #include "pktgen/PayloadLength.h"
 
 #include <stdint.h>
 #include <vector>
 
-namespace PktGen
+namespace PktGen::internal
 {
 	typedef std::vector<uint8_t> PayloadVector;
 
@@ -137,30 +138,28 @@ namespace PktGen
 			PrintIndent(depth, "}");
 		}
 	};
+}
 
-	auto inline PacketPayload()
+namespace PktGen
+{
+	auto inline payload(internal::PayloadVector && p)
 	{
-		return PacketTemplateWrapper(PayloadTemplate());
-	}
-
-	auto inline payload(PayloadVector && p)
-	{
-		return PayloadField([p](auto & h) { h.SetPayload(p); });
+		return internal::PayloadField([p](auto & h) { h.SetPayload(p); });
 	}
 
 	auto inline payload()
 	{
-		return payload(PayloadVector());
+		return payload(internal::PayloadVector());
 	}
 
 	auto inline payload(uint8_t byte, size_t count = 1)
 	{
-		return payload(PayloadVector(count, byte));
+		return payload(internal::PayloadVector(count, byte));
 	}
 
 	auto inline payload(const std::string & str, size_t count)
 	{
-		return payload(PayloadTemplate::FillPayload(str, count));
+		return payload(internal::PayloadTemplate::FillPayload(str, count));
 	}
 
 	auto inline payload(const char * p)
@@ -169,19 +168,19 @@ namespace PktGen
 		return payload(str, str.size());
 	}
 
-	auto inline appendPayload(PayloadVector && p)
+	auto inline appendPayload(internal::PayloadVector && p)
 	{
-		return PayloadField([p](auto & h) { h.AppendPayload(p); });
+		return internal::PayloadField([p](auto & h) { h.AppendPayload(p); });
 	}
 
 	auto inline appendPayload(uint8_t byte, size_t count = 1)
 	{
-		return appendPayload(PayloadVector(count, byte));
+		return appendPayload(internal::PayloadVector(count, byte));
 	}
 
 	auto inline appendPayload(const std::string & str, size_t count)
 	{
-		return appendPayload(PayloadTemplate::FillPayload(str, count));
+		return appendPayload(internal::PayloadTemplate::FillPayload(str, count));
 	}
 
 	auto inline appendPayload(const char * p)
@@ -192,7 +191,7 @@ namespace PktGen
 
 	auto inline length(size_t size)
 	{
-		return PayloadField([size] (auto & h) { h.SetLength(size); });
+		return internal::PayloadField([size] (auto & h) { h.SetLength(size); });
 	}
 }
 

@@ -36,7 +36,7 @@
 #include <iomanip>
 #include <ostream>
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class EtherAddr
 	{

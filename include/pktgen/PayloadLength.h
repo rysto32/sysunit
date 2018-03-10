@@ -29,7 +29,7 @@
 #ifndef PKTGEN_PAYLOAD_LENGTH_H
 #define PKTGEN_PAYLOAD_LENGTH_H
 
-namespace PktGen
+namespace PktGen::internal
 {
 	template <typename Header>
 	class PayloadLengthSetter

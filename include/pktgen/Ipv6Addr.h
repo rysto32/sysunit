@@ -41,7 +41,7 @@ extern "C" {
 
 std::ostream & operator<<(std::ostream & os, struct in6_addr a);
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class Ipv6Addr
 	{
@@ -76,7 +76,7 @@ namespace PktGen
 		std::string ToString() const;
 	};
 
-	std::ostream & operator<<(std::ostream & os, const PktGen::Ipv6Addr & a);
+	std::ostream & operator<<(std::ostream & os, const PktGen::internal::Ipv6Addr & a);
 }
 
 #endif

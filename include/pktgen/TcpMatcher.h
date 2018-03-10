@@ -35,7 +35,7 @@
 
 struct mbuf;
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class TcpMatcher : public testing::MatcherInterface<mbuf*>
 	{

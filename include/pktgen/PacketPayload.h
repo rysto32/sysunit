@@ -29,7 +29,16 @@
 #ifndef PKTGEN_PACKET_PAYLOAD_H
 #define PKTGEN_PACKET_PAYLOAD_H
 
+#include "pktgen/Packet.h"
 #include "pktgen/PacketPayloadTemplate.h"
 #include "pktgen/PayloadMatcher.h"
+
+namespace PktGen
+{
+	auto inline PacketPayload()
+	{
+		return internal::PacketTemplateWrapper(internal::PayloadTemplate());
+	}
+}
 
 #endif

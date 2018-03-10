@@ -35,12 +35,12 @@
 
 std::ostream & operator<<(std::ostream & os, struct in6_addr a)
 {
-	return os << PktGen::Ipv6Addr(a);
+	return os << PktGen::internal::Ipv6Addr(a);
 }
 
-namespace PktGen
+namespace PktGen::internal
 {
-	std::ostream & operator<<(std::ostream & os, const PktGen::Ipv6Addr & a)
+	std::ostream & operator<<(std::ostream & os, const PktGen::internal::Ipv6Addr & a)
 	{
 		return os << a.ToString();
 	}

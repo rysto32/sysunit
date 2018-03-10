@@ -28,11 +28,11 @@
 
 #include "pktgen/Packet.h"
 
-#include "pktgen/EthernetHeader.h"
-#include "pktgen/Ipv4Header.h"
-#include "pktgen/Ipv6Header.h"
+#include "pktgen/Ethernet.h"
+#include "pktgen/Ipv4.h"
+#include "pktgen/Ipv6.h"
 #include "pktgen/PacketPayload.h"
-#include "pktgen/TcpHeader.h"
+#include "pktgen/Tcp.h"
 
 #include "sysunit/TestSuite.h"
 
@@ -42,6 +42,7 @@
 #include <stubs/uio.h>
 
 using namespace PktGen;
+using internal::GetMbufHeader;
 
 class PacketEncapsulationTestSuite : public SysUnit::TestSuite
 {

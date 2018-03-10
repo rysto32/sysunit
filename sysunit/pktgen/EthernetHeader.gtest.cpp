@@ -26,7 +26,7 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/EthernetHeader.h"
+#include "pktgen/Ethernet.h"
 #include "pktgen/Packet.h"
 #include "pktgen/PacketPayload.h"
 
@@ -38,6 +38,7 @@
 #include <stubs/uio.h>
 
 using namespace PktGen;
+using internal::GetMbufHeader;
 
 class EthernetHeaderTestSuite : public SysUnit::TestSuite
 {

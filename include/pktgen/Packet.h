@@ -48,17 +48,8 @@ extern "C" {
 
 #include <iostream>
 
-namespace PktGen
+namespace PktGen::internal
 {
-	struct DefaultOutwardFieldSetter
-	{
-		template <typename Lower, typename Upper>
-		void operator()(Lower & l, const Upper & u) const
-		{
-			PayloadLengthSetter<Lower>()(l, u.GetLen() + u.GetPayloadLength());
-		}
-	};
-
 	template <typename... Headers>
 	class PacketTemplateWrapper
 	{
@@ -319,47 +310,14 @@ namespace PktGen
 				headers);
 		}
 	};
+}
 
+namespace PktGen
+{
 	template <typename... Headers>
 	auto PacketTemplate(Headers... rest)
 	{
-		return PacketTemplateWrapper(std::tuple_cat(std::tuple(rest.Unwrap())...));
-	}
-
-	template <typename T, typename Mbuf>
-	inline T * GetMbufHeader(const Mbuf & m, size_t offset = 0)
-	{
-		return reinterpret_cast<T*>(m->m_data + offset);
-	}
-
-	inline uint8_t ntoh(uint8_t x)
-	{
-		return x;
-	}
-
-	inline uint16_t ntoh(uint16_t x)
-	{
-		return ntohs(x);
-	}
-
-	inline uint32_t ntoh(uint32_t x)
-	{
-		return ntohl(x);
-	}
-
-	inline uint8_t hton(uint8_t x)
-	{
-		return x;
-	}
-
-	inline uint16_t hton(uint16_t x)
-	{
-		return htons(x);
-	}
-
-	inline uint32_t hton(uint32_t x)
-	{
-		return htonl(x);
+		return internal::PacketTemplateWrapper(std::tuple_cat(std::tuple(rest.Unwrap())...));
 	}
 }
 

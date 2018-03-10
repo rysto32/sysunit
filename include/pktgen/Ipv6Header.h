@@ -38,14 +38,15 @@ extern "C" {
 #include <kern_include/netinet/ip6.h>
 }
 
+#include "pktgen/FieldPropagator.h"
 #include "pktgen/Ipv6Addr.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/PayloadLength.h"
-#include "pktgen/Packet.h"
+#include "pktgen/PacketParsing.h"
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class Ipv6Template
 	{
@@ -214,11 +215,6 @@ namespace PktGen
 			PrintIndent(depth, "}");
 		}
 	};
-
-	auto inline Ipv6Header()
-	{
-		return PacketTemplateWrapper(Ipv6Template());
-	}
 }
 
 #endif

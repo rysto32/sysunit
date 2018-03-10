@@ -28,9 +28,8 @@
 
 #include "pktgen/PacketPayload.h"
 
-#include "pktgen/Ipv4Header.h"
-#include "pktgen/Ipv6Header.h"
-#include "pktgen/Packet.h"
+#include "pktgen/Ipv4.h"
+#include "pktgen/Ipv6.h"
 
 #include "sysunit/TestSuite.h"
 
@@ -40,6 +39,8 @@
 #include <stubs/uio.h>
 
 using namespace PktGen;
+using internal::GetMbufHeader;
+using internal::ntoh;
 
 class PacketPayloadTestSuite : public SysUnit::TestSuite
 {

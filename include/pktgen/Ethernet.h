@@ -31,5 +31,14 @@
 
 #include "pktgen/EthernetHeader.h"
 #include "pktgen/EthernetMatcher.h"
+#include "pktgen/Packet.h"
+
+namespace PktGen
+{
+	auto inline EthernetHeader()
+	{
+		return internal::PacketTemplateWrapper(internal::EthernetTemplate());
+	}
+}
 
 #endif

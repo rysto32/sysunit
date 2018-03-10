@@ -36,6 +36,7 @@ extern "C" {
 #include <kern_include/netinet/ip.h>
 }
 
+#include <arpa/inet.h>
 #include <ostream>
 
 inline std::ostream & operator<<(std::ostream & os, struct in_addr a)
@@ -48,7 +49,7 @@ inline std::ostream & operator<<(std::ostream & os, struct in_addr a)
 	return os;
 }
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class Ipv4Addr
 	{
@@ -92,7 +93,7 @@ namespace PktGen
 		}
 	};
 
-	inline std::ostream & operator<<(std::ostream & os, const PktGen::Ipv4Addr & a)
+	inline std::ostream & operator<<(std::ostream & os, const PktGen::internal::Ipv4Addr & a)
 	{
 		os << a.GetAddr();
 

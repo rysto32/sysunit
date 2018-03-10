@@ -37,14 +37,15 @@ extern "C" {
 #include <kern_include/netinet/tcp.h>
 }
 
+#include "pktgen/FieldPropagator.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/L4Fields.h"
 #include "pktgen/PayloadLength.h"
-#include "pktgen/Packet.h"
+#include "pktgen/PacketParsing.h"
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class TcpTemplate
 	{
@@ -274,11 +275,6 @@ namespace PktGen
 			PrintIndent(depth, "}");
 		}
 	};
-
-	auto inline TcpHeader()
-	{
-		return PacketTemplateWrapper(TcpTemplate());
-	}
 }
 
 #endif

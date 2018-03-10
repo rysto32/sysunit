@@ -36,7 +36,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
-namespace PktGen
+namespace PktGen::internal
 {
 	TcpMatcher::TcpMatcher(const TcpTemplate & header, size_t offset)
 	  : header(header),

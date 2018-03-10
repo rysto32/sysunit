@@ -31,7 +31,7 @@
 
 #include <string>
 
-namespace PktGen
+namespace PktGen::internal
 {
 	enum class LayerVal
 	{
@@ -54,36 +54,39 @@ namespace PktGen
 			return MakeLayerName(Layer, Nesting);
 		}
 	};
+}
 
+namespace PktGen
+{
 	namespace NestedLayer
 	{
 		template <int Nesting>
-		const LayerImpl<LayerVal::L2, Nesting> L2;
+		const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L2, Nesting> L2;
 
 		template <int Nesting>
-		const LayerImpl<LayerVal::L3, Nesting> L3;
+		const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L3, Nesting> L3;
 
 		template <int Nesting>
-		const LayerImpl<LayerVal::L4, Nesting> L4;
+		const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L4, Nesting> L4;
 
 		template <int Nesting>
-		const LayerImpl<LayerVal::PAYLOAD, Nesting> PAYLOAD;
+		const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::PAYLOAD, Nesting> PAYLOAD;
 	}
 
 	namespace Layer
 	{
-		extern const LayerImpl<LayerVal::L2, 1> L2;
-		extern const LayerImpl<LayerVal::L3, 1> L3;
-		extern const LayerImpl<LayerVal::L4, 1> L4;
-		extern const LayerImpl<LayerVal::PAYLOAD, 1> PAYLOAD;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L2, 1> L2;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L3, 1> L3;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L4, 1> L4;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::PAYLOAD, 1> PAYLOAD;
 
-		extern const LayerImpl<LayerVal::L2, 1> OUTER_L2;
-		extern const LayerImpl<LayerVal::L3, 1> OUTER_L3;
-		extern const LayerImpl<LayerVal::L4, 1> OUTER_L4;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L2, 1> OUTER_L2;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L3, 1> OUTER_L3;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L4, 1> OUTER_L4;
 
-		extern const LayerImpl<LayerVal::L2, -1> INNER_L2;
-		extern const LayerImpl<LayerVal::L3, -1> INNER_L3;
-		extern const LayerImpl<LayerVal::L4, -1> INNER_L4;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L2, -1> INNER_L2;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L3, -1> INNER_L3;
+		extern const PktGen::internal::LayerImpl<PktGen::internal::LayerVal::L4, -1> INNER_L4;
 	}
 }
 

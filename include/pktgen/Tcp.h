@@ -29,7 +29,16 @@
 #ifndef PKTGEN_TCP_H
 #define PKTGEN_TCP_H
 
+#include "pktgen/Packet.h"
 #include "pktgen/TcpHeader.h"
 #include "pktgen/TcpMatcher.h"
+
+namespace PktGen
+{
+	auto inline TcpHeader()
+	{
+		return internal::PacketTemplateWrapper(internal::TcpTemplate());
+	}
+}
 
 #endif

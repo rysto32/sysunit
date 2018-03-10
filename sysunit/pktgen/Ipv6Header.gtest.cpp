@@ -26,9 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#include "pktgen/Ipv6Header.h"
+#include "pktgen/Ipv6.h"
 
-#include "pktgen/EthernetHeader.h"
 #include "pktgen/Packet.h"
 #include "pktgen/PacketPayload.h"
 
@@ -40,6 +39,9 @@
 #include <stubs/uio.h>
 
 using namespace PktGen;
+using internal::GetMbufHeader;
+using internal::Ipv6Addr;
+using internal::ntoh;
 
 class Ipv6HeaderTestSuite : public SysUnit::TestSuite
 {

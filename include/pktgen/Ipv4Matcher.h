@@ -35,7 +35,7 @@
 
 struct mbuf;
 
-namespace PktGen
+namespace PktGen::internal
 {
 	class Ipv4Matcher : public testing::MatcherInterface<mbuf*>
 	{
