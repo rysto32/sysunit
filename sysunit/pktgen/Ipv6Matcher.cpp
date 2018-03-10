@@ -78,7 +78,7 @@ using testing::MatchResultListener;
 
 namespace PktGen
 {
-	Ipv6Matcher::Ipv6Matcher(UnnestedIpv6Template && h, size_t offset)
+	Ipv6Matcher::Ipv6Matcher(const Ipv6Template & h, size_t offset)
 	  : header(h),
 	    headerOffset(offset)
 	{

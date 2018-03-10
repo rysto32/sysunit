@@ -31,9 +31,8 @@
 
 #include "fake/mbuf.h"
 
-#include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Layer.h"
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/Packet.h"
 #include "pktgen/PayloadLength.h"
 
 #include <stdint.h>
@@ -43,26 +42,19 @@ namespace PktGen
 {
 	typedef std::vector<uint8_t> PayloadVector;
 
-	template <typename Nesting>
 	class PayloadTemplate
 	{
 	private:
 		PayloadVector payload;
 
-	public:
-		typedef typename Nesting::NextPayload NESTING_LEVEL;
-		typedef typename NESTING_LEVEL::PAYLOAD LAYER;
-		typedef PayloadTemplate<Nesting> SelfType;
+		typedef PayloadTemplate SelfType;
 
-		typedef DefaultEncapFieldSetter EncapFieldSetter;
+	public:
+		static const auto LAYER = LayerVal::PAYLOAD;
+
+		typedef DefaultOutwardFieldSetter OutwardFieldSetter;
 
 		PayloadTemplate() = default;
-
-		template <typename U>
-		explicit PayloadTemplate(const PayloadTemplate<U> & h)
-		  : payload(h.GetPayload())
-		{
-		}
 
 		void SetPayload(const PayloadVector & p)
 		{
@@ -84,13 +76,17 @@ namespace PktGen
 			}
 		}
 
-		void FillPacket(mbuf * m, size_t & offset) const
+		void FillPacket(mbuf * m, size_t offset) const
 		{
 			auto * pl = GetMbufHeader<uint8_t>(m, offset);
 
 			memcpy(pl, &payload[0], GetLen());
+		}
 
-			offset += GetLen();
+		void SetPayloadLength(size_t len)
+		{
+			if (len != 0)
+				throw std::runtime_error("Payload does not support encapsulated headers");
 		}
 
 		size_t GetPayloadLength() const
@@ -116,17 +112,6 @@ namespace PktGen
 		PayloadTemplate Retransmission() const
 		{
 			return *this;
-		}
-
-		template <typename NestingLevel>
-		static auto MakeNested(const SelfType & up)
-		{
-			return PayloadTemplate<NestingLevel>(up);
-		}
-
-		UnnestedPayloadTemplate StripNesting() const
-		{
-			return UnnestedPayloadTemplate(*this);
 		}
 
 		static PayloadVector FillPayload(const std::string & str, size_t count)
@@ -155,7 +140,7 @@ namespace PktGen
 
 	auto inline PacketPayload()
 	{
-		return EncapsulatableHeader(UnnestedPayloadTemplate());
+		return PacketTemplateWrapper(PayloadTemplate());
 	}
 
 	auto inline payload(PayloadVector && p)
@@ -175,7 +160,7 @@ namespace PktGen
 
 	auto inline payload(const std::string & str, size_t count)
 	{
-		return payload(UnnestedPayloadTemplate::FillPayload(str, count));
+		return payload(PayloadTemplate::FillPayload(str, count));
 	}
 
 	auto inline payload(const char * p)
@@ -196,7 +181,7 @@ namespace PktGen
 
 	auto inline appendPayload(const std::string & str, size_t count)
 	{
-		return appendPayload(UnnestedPayloadTemplate::FillPayload(str, count));
+		return appendPayload(PayloadTemplate::FillPayload(str, count));
 	}
 
 	auto inline appendPayload(const char * p)

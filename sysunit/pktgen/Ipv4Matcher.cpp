@@ -40,7 +40,7 @@ using testing::MatchResultListener;
 
 namespace PktGen
 {
-	Ipv4Matcher::Ipv4Matcher(UnnestedIpv4Template && h, size_t offset)
+	Ipv4Matcher::Ipv4Matcher(const Ipv4Template & h, size_t offset)
 	  : header(h),
 	    headerOffset(offset)
 	{

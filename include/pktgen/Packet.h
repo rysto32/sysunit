@@ -31,7 +31,9 @@
 
 #include "fake/mbuf.h"
 
+#include "pktgen/Layer.h"
 #include "pktgen/MbufPtr.h"
+#include "pktgen/PayloadLength.h"
 
 extern "C" {
 #include <kern_include/sys/types.h>
@@ -42,39 +44,66 @@ extern "C" {
 #include <memory>
 #include <stdio.h>
 #include <string.h>
+#include <tuple>
+
+#include <iostream>
 
 namespace PktGen
 {
-	template <typename Header>
-	auto WrapPacketTemplate(const Header & h);
+	struct DefaultOutwardFieldSetter
+	{
+		template <typename Lower, typename Upper>
+		void operator()(Lower & l, const Upper & u) const
+		{
+			PayloadLengthSetter<Lower>()(l, u.GetLen() + u.GetPayloadLength());
+		}
+	};
 
-	template <typename Header>
-	auto UnwrapTemplate(const Header &);
-
-	template <typename Header>
+	template <typename... Headers>
 	class PacketTemplateWrapper
 	{
 	private:
-		Header header;
+		std::tuple<Headers...> headers;
 
 		typedef PacketTemplateWrapper SelfType;
 
 		struct WithHeaderImpl;
-		struct WithHeaderFieldsImpl;
 
-		template <typename Layer>
+		template <std::size_t... Indices, typename... Types>
+		static auto SliceFrontImpl(std::index_sequence<Indices...>, std::tuple<Types...> tuple)
+		{
+			return std::make_tuple(std::get<Indices>(tuple)...);
+		}
+
+		template <std::size_t index, typename... Types>
+		static auto SliceFront(const std::tuple<Types...> & tuple)
+		{
+			return SliceFrontImpl(std::make_index_sequence<index>(), tuple);
+		}
+
+		template <std::size_t index, std::size_t... Indices, typename... Types>
+		static auto SliceBackImpl(std::index_sequence<Indices...>, std::tuple<Types...> tuple)
+		{
+			return std::make_tuple(std::get<Indices + index + 1>(tuple)...);
+		}
+
+		template <std::size_t index, typename... Types>
+		static auto SliceBack(const std::tuple<Types...> & tuple)
+		{
+			return SliceBackImpl<index>(std::make_index_sequence<sizeof...(Types) - index - 1>(), tuple);
+		}
+
+		template <std::size_t HeaderIndex>
 		class FieldsImpl
 		{
 		private:
-			const Header & header;
+			const std::tuple<Headers...> & headers;
 
-			explicit FieldsImpl(const Header & h)
-			  : header(h)
+			explicit FieldsImpl(const std::tuple<Headers...> & h)
+			  : headers(h)
 			{
 			}
 
-			friend struct WithHeaderImpl;
-			friend struct WithHeaderFieldsImpl;
 			friend PacketTemplateWrapper;
 
 			FieldsImpl() = delete;
@@ -89,93 +118,168 @@ namespace PktGen
 			template <typename... FieldList>
 			SelfType Fields(FieldList... f)
 			{
-				return SelfType(header.template WithHeaderFields<Layer>(f...));
-			}
-
-			template <typename... FieldList>
-			SelfType operator()(FieldList... f)
-			{
-				return Fields(f...);
+				return SelfType(std::tuple_cat(SliceFront<HeaderIndex>(headers),
+				    std::make_tuple(Apply(std::get<HeaderIndex>(headers), f...)),
+				    SliceBack<HeaderIndex>(headers)));
 			}
 		};
 
-		struct WithHeaderFieldsImpl
+		template <typename... Types>
+		static auto Head(std::tuple<Types...> tuple)
 		{
-		private:
-			const SelfType & parent;
+			return SliceFront<sizeof...(Types) - 1>(tuple);
+		}
 
-			WithHeaderFieldsImpl(const SelfType & p)
-			  : parent(p)
-			{
-			}
+		template <typename... Types>
+		static auto Tail(std::tuple<Types...> tuple)
+		{
+			return std::get<sizeof...(Types) - 1>(tuple);
+		}
 
-			friend SelfType;
-			WithHeaderFieldsImpl(const WithHeaderFieldsImpl &) = default;
-			WithHeaderFieldsImpl & operator=(const WithHeaderFieldsImpl &) = default;
+		template <typename T, typename... Mutators>
+		static T Apply(const T & original, Mutators... mutators)
+		{
+			T copy(original);
 
-		public:
-			template <typename Layer, typename... Fields>
-			SelfType operator()(Layer l, Fields... f) const
-			{
-				return SelfType(parent.header.template WithHeaderFields<Layer>(f...));
-			}
+			return ApplyMutators(copy, mutators...);
+		}
 
-			template <typename Layer>
-			auto operator[](Layer l) const
-			{
-				return FieldsImpl<Layer>(parent.header);
-			}
+		template <typename T, typename Mutator, typename... Rest>
+		static T & ApplyMutators(T & header, const Mutator & m, Rest... rest)
+		{
+			m(header);
+			return ApplyMutators(header, rest...);
+		}
 
-			WithHeaderFieldsImpl() = delete;
-			WithHeaderFieldsImpl(WithHeaderFieldsImpl &&) = delete;
-			WithHeaderFieldsImpl & operator=(WithHeaderFieldsImpl &&) = delete;
-		};
+		template <typename T>
+		static T & ApplyMutators(T & header)
+		{
+			return header;
+		}
 
-		friend WithHeaderImpl;
-		friend WithHeaderFieldsImpl;
+		template <LayerVal Layer, int Nesting, typename Header, typename...Rest>
+		static constexpr
+		typename std::enable_if<Layer != Header::LAYER, std::size_t>::type
+		FindLayerFromOuter()
+		{
+			return SelfType::FindLayerFromOuter<Layer, Nesting, Rest...>() + 1;
+		}
 
-	public:
-		explicit PacketTemplateWrapper(const Header & h)
-		  : header(h),
-		    WithHeaderFields(*this)
+		template <LayerVal Layer, int Nesting, typename Header, typename...Rest>
+		static constexpr
+		typename std::enable_if<Layer == Header::LAYER && std::greater<int>()(Nesting, 1), std::size_t>::type
+		FindLayerFromOuter()
+		{
+			return SelfType::FindLayerFromOuter<Layer, Nesting - 1, Rest...>() + 1;
+		}
+
+		template <LayerVal Layer, int Nesting, typename Header, typename...Rest>
+		static constexpr
+		typename std::enable_if<Layer == Header::LAYER && Nesting == 1, std::size_t>::type
+		FindLayerFromOuter()
+		{
+			return 0;
+		}
+
+		template <LayerVal Layer, typename Header, typename...Rest>
+		static constexpr
+		typename std::enable_if<Layer != Header::LAYER, std::size_t>::type
+		CountLayers()
+		{
+			return SelfType::CountLayers<Layer, Rest...>();
+		}
+
+		template <LayerVal Layer, typename Header, typename...Rest>
+		static constexpr
+		typename std::enable_if<Layer == Header::LAYER, std::size_t>::type
+		CountLayers()
+		{
+			return SelfType::CountLayers<Layer, Rest...>() + 1;
+		}
+
+		template <LayerVal Layer>
+		static constexpr std::size_t
+		CountLayers()
+		{
+			return 0;
+		}
+
+		template <LayerVal Layer, int Nesting>
+		static constexpr std::size_t FindLayer()
+		{
+			static_assert(Nesting != 0);
+			constexpr std::size_t NestCount =  Nesting > 0 ?
+			    Nesting :
+			    CountLayers<Layer, Headers...>() + Nesting + 1;
+
+			return SelfType::FindLayerFromOuter<Layer, NestCount, Headers...>();
+		}
+
+		template <typename First, typename Second, typename...Rest>
+		static void PropagateOutwards(First & first, Second & second, Rest &... rest)
+		{
+			PropagateOutwards(second, rest...);
+			typename Second::OutwardFieldSetter setter;
+			setter(first, second);
+		}
+
+		template <typename First>
+		static void PropagateOutwards(First & first)
 		{
 		}
 
-		WithHeaderFieldsImpl WithHeaderFields;
-
-		template <typename Layer>
-		auto WithHeader(Layer l) const
+		void PropagateOutwardFieldSetters()
 		{
-			return FieldsImpl<Layer>(header);
+			std::apply([] (auto &... headers)
+				{
+					PropagateOutwards(headers...);
+				}, headers);
+		}
+
+
+	public:
+		explicit PacketTemplateWrapper(Headers... h)
+		  : headers(std::make_tuple(h...))
+		{
+			PropagateOutwardFieldSetters();
+		}
+
+		explicit PacketTemplateWrapper(const std::tuple<Headers...> & h)
+		  : headers(h)
+		{
+			PropagateOutwardFieldSetters();
 		}
 
 		template <typename... Fields>
 		SelfType With(Fields... f) const
 		{
-			return SelfType(header.With(f...));
+			return SelfType(std::tuple_cat(Head(headers),
+			    std::make_tuple(Apply(Tail(headers), f...))));
 		}
 
-		template <typename Lower>
-		auto EncapIn(const Lower & lower) const
+		template <LayerVal Layer, int Nesting>
+		auto WithHeader(LayerImpl<Layer, Nesting> l) const
 		{
-			return WrapPacketTemplate(header.EncapIn(UnwrapTemplate(lower)));
-		}
-
-		template <typename Lower>
-		auto Encapsulate(const Lower & lower) const
-		{
-			return WrapPacketTemplate(header.Encapsulate(UnwrapTemplate(lower)));
-		}
-
-		Header Unwrap() const
-		{
-			return header;
+			return FieldsImpl<FindLayer<Layer, Nesting>()>(headers);
 		}
 
 		MbufPtr Generate() const
 		{
-			size_t offset = 0;
-			return header.Generate(offset);
+			const auto & outer = std::get<0>(headers);
+			int len = outer.GetLen() + outer.GetPayloadLength();
+			MbufPtr m(alloc_mbuf(len));
+
+			m->m_pkthdr.len = len;
+			m->m_len = len;
+
+			std::apply( [&m] (const auto &... header)
+				{
+					size_t offset = 0;
+					((header.FillPacket(m.get(), offset), offset += header.GetLen()), ...);
+				},
+				headers);
+
+			return m;
 		}
 
 		struct mbuf * GenerateRawMbuf() const
@@ -185,60 +289,41 @@ namespace PktGen
 
 		SelfType Next() const
 		{
-			return SelfType(header.Next());
+			return std::apply([] (const auto &... header)
+				{
+					return SelfType(header.Next()...);
+				},
+				headers);
 		}
 
 		SelfType Retransmission() const
 		{
-			return SelfType(header.Retransmission());
+			return std::apply([] (const auto &... header)
+				{
+					return SelfType(header.Retransmission()...);
+				},
+				headers);
 		}
 
-		void print(int depth) const
+		const std::tuple<Headers...> & Unwrap() const
 		{
-			header.print(depth);
+			return headers;
+		}
+
+		void Print() const
+		{
+			std::apply([] (const auto &... header)
+				{
+					((header.print(0)) , ...);
+				},
+				headers);
 		}
 	};
-
-	template <typename Header>
-	auto UnwrapTemplate(const PacketTemplateWrapper<Header> & h)
-	{
-		return h.Unwrap();
-	}
-
-	template <typename Header>
-	auto UnwrapTemplate(const Header & h)
-	{
-		return h;
-	}
-
-	template <typename Lower, typename Upper, typename... Headers>
-	auto MakePacketTemplate(const Lower & l, const Upper & h, Headers... rest)
-	{
-		return UnwrapTemplate(l).Encapsulate(MakePacketTemplate(UnwrapTemplate(h), rest...));
-	}
-
-	template <typename Header>
-	auto MakePacketTemplate(const Header & h)
-	{
-		return UnwrapTemplate(h);
-	}
-
-	template <typename Header>
-	auto WrapPacketTemplate(const PacketTemplateWrapper<Header> & h)
-	{
-		static_assert(!std::is_same<Header, Header>::value);
-	}
-
-	template <typename Header>
-	auto WrapPacketTemplate(const Header & h)
-	{
-		return PacketTemplateWrapper<Header>(h);
-	}
 
 	template <typename... Headers>
 	auto PacketTemplate(Headers... rest)
 	{
-		return WrapPacketTemplate(MakePacketTemplate(rest...));
+		return PacketTemplateWrapper(std::tuple_cat(std::tuple(rest.Unwrap())...));
 	}
 
 	template <typename T, typename Mbuf>

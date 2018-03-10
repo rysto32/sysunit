@@ -85,50 +85,6 @@ namespace PktGen
 		extern const LayerImpl<LayerVal::L3, -1> INNER_L3;
 		extern const LayerImpl<LayerVal::L4, -1> INNER_L4;
 	}
-
-	template <int l2Nest = 0, int l3Nest = 0, int l4Nest = 0, int payloadNest = 0>
-	struct CurrentNesting
-	{
-		typedef LayerImpl<LayerVal::L2, l2Nest> L2;
-		typedef LayerImpl<LayerVal::L3, l3Nest> L3;
-		typedef LayerImpl<LayerVal::L4, l4Nest> L4;
-		typedef LayerImpl<LayerVal::PAYLOAD, payloadNest> PAYLOAD;
-
-		static constexpr int Depth(LayerVal l)
-		{
-			switch (l) {
-			case LayerVal::L2:
-				return l2Nest;
-			case LayerVal::L3:
-				return l3Nest;
-			case LayerVal::L4:
-				return l4Nest;
-			case LayerVal::PAYLOAD:
-				return payloadNest;
-			default:
-				return -1;
-			}
-		}
-
-		template <LayerVal layer, int depth>
-		static constexpr int ConvertInnerDepth()
-		{
-			return depth > 0 ? depth : Depth(layer) + depth + 1;
-		}
-
-		template <typename Layer>
-		static constexpr int ConvertInnerDepth()
-		{
-			return ConvertInnerDepth<Layer::LAYER, Layer::NESTING>();
-		}
-
-		typedef CurrentNesting<l2Nest + 1, l3Nest, l4Nest, payloadNest> NextL2;
-		typedef CurrentNesting<l2Nest, l3Nest + 1, l4Nest, payloadNest> NextL3;
-		typedef CurrentNesting<l2Nest, l3Nest, l4Nest + 1, payloadNest> NextL4;
-		typedef CurrentNesting<l2Nest, l3Nest, l4Nest, payloadNest + 1> NextPayload;
-	};
-
-	typedef CurrentNesting<> DefaultNestingLevel;
 }
 
 void PrintIndent(int, const char *, ...);

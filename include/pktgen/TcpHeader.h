@@ -37,17 +37,15 @@ extern "C" {
 #include <kern_include/netinet/tcp.h>
 }
 
-#include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/L4Fields.h"
 #include "pktgen/PayloadLength.h"
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/Packet.h"
 
 namespace PktGen
 {
-	template <typename Nesting>
 	class TcpTemplate
 	{
 	private:
@@ -66,21 +64,20 @@ namespace PktGen
 		bool checksumPassed;
 		size_t payloadLength;
 
-		typedef TcpTemplate<Nesting> SelfType;
+		typedef TcpTemplate SelfType;
 
 	public:
-		typedef typename Nesting::NextL4 NESTING_LEVEL;
-		typedef typename NESTING_LEVEL::L4 LAYER;
+		static const auto LAYER = LayerVal::L4;
 
-		struct EncapFieldSetter
+		struct OutwardFieldSetter
 		{
 			template <typename Header>
-			Header operator()(const Header & h, const TcpTemplate & t) const
+			void operator()(Header & h, const TcpTemplate & t) const
 			{
-				DefaultEncapFieldSetter setter;
-				return setter(h, t).template With(
-				    proto(t.GetIpProto())
-				);
+				DefaultOutwardFieldSetter setter;
+
+				setter(h, t);
+				proto(t.GetIpProto())(h);
 			}
 		};
 
@@ -98,24 +95,6 @@ namespace PktGen
 		    checksumVerified(false),
 		    checksumPassed(false),
 		    payloadLength(0)
-		{
-		}
-
-		template <typename U>
-		TcpTemplate(const TcpTemplate<U> & h)
-		  : th_sport(h.GetSrcPort()),
-		    th_dport(h.GetDstPort()),
-		    th_seq(h.GetSeq()),
-		    th_ack(h.GetAck()),
-		    th_off(h.GetOff()),
-		    th_x2(h.GetX2()),
-		    th_flags(h.GetFlags()),
-		    th_win(h.GetWindow()),
-		    th_sum(h.GetChecksum()),
-		    th_urp(h.GetUrgentPointer()),
-		    checksumVerified(h.GetChecksumVerified()),
-		    checksumPassed(h.GetChecksumPassed()),
-		    payloadLength(h.GetPayloadLength())
 		{
 		}
 
@@ -261,7 +240,7 @@ namespace PktGen
 			return *this;
 		}
 
-		void FillPacket(mbuf * m, size_t & offset) const
+		void FillPacket(mbuf * m, size_t offset) const
 		{
 			auto * tcp = GetMbufHeader<tcphdr>(m, offset);
 
@@ -285,19 +264,6 @@ namespace PktGen
 					m->m_pkthdr.csum_flags |= CSUM_L4_VALID;
 				}
 			}
-
-			offset += GetLen();
-		}
-
-		template <typename NestingLevel>
-		static auto MakeNested(const SelfType & up)
-		{
-			return TcpTemplate<NestingLevel>(up);
-		}
-
-		UnnestedTcpTemplate StripNesting() const
-		{
-			return UnnestedTcpTemplate(*this);
 		}
 
 		void print(int depth) const
@@ -311,7 +277,7 @@ namespace PktGen
 
 	auto inline TcpHeader()
 	{
-		return EncapsulatableHeader<UnnestedTcpTemplate>();
+		return PacketTemplateWrapper(TcpTemplate());
 	}
 }
 

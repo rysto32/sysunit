@@ -40,7 +40,7 @@ using testing::MatchResultListener;
 
 namespace PktGen
 {
-	PayloadMatcher::PayloadMatcher(UnnestedPayloadTemplate && p, size_t off)
+	PayloadMatcher::PayloadMatcher(const PayloadTemplate & p, size_t off)
 	  : payload(std::move(p)),
 	    headerOffset(off)
 	{

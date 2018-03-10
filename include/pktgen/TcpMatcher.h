@@ -31,7 +31,7 @@
 
 #include <gmock/gmock-matchers.h>
 
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/TcpHeader.h"
 
 struct mbuf;
 
@@ -40,11 +40,11 @@ namespace PktGen
 	class TcpMatcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		UnnestedTcpTemplate header;
+		TcpTemplate header;
 		const size_t headerOffset;
 
 	public:
-		TcpMatcher(UnnestedTcpTemplate &&, size_t off);
+		TcpMatcher(const TcpTemplate &, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -52,10 +52,9 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	template <typename Nesting>
-	auto inline PacketMatcher(const TcpTemplate<Nesting> & t, size_t off)
+	auto inline PacketMatcher(const TcpTemplate & t, size_t off)
 	{
-		return TcpMatcher(t.StripNesting(), off);
+		return TcpMatcher(t, off);
 	}
 }
 

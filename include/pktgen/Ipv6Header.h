@@ -38,17 +38,15 @@ extern "C" {
 #include <kern_include/netinet/ip6.h>
 }
 
-#include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Ipv6Addr.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/PayloadLength.h"
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/Packet.h"
 
 namespace PktGen
 {
-	template <typename Nesting>
 	class Ipv6Template
 	{
 	private:
@@ -64,18 +62,17 @@ namespace PktGen
 		typedef Ipv6Template SelfType;
 
 	public:
-		typedef typename Nesting::NextL3 NESTING_LEVEL;
-		typedef typename NESTING_LEVEL::L3 LAYER;
+		static const auto LAYER = LayerVal::L3;
 
-		struct EncapFieldSetter
+		struct OutwardFieldSetter
 		{
 			template <typename Header>
-			Header operator()(const Header & h, const Ipv6Template & t) const
+			void operator()(Header & h, const Ipv6Template & t) const
 			{
-				DefaultEncapFieldSetter setter;
-				return setter(h, t).template With(
-				    ethertype(GetEthertype())
-				);
+				DefaultOutwardFieldSetter setter;
+
+				setter(h, t);
+				ethertype(GetEthertype())(h);
 			}
 		};
 
@@ -86,19 +83,6 @@ namespace PktGen
 		    ipv6_plen(0),
 		    ipv6_nxt(0),
 		    ipv6_hlim(255)
-		{
-		}
-
-		template <typename U>
-		explicit Ipv6Template(const Ipv6Template<U> & t)
-		  : ipv6_version(t.GetVersion()),
-		    ipv6_class(t.GetClass()),
-		    ipv6_flow(t.GetFlow()),
-		    ipv6_plen(t.GetPayloadLength()),
-		    ipv6_nxt(t.GetProto()),
-		    ipv6_hlim(t.GetHopLimit()),
-		    ipv6_src(t.GetSrc()),
-		    ipv6_dst(t.GetDst())
 		{
 		}
 
@@ -192,7 +176,7 @@ namespace PktGen
 			return ETHERTYPE_IPV6;
 		}
 
-		void FillPacket(mbuf * m, size_t & offset) const
+		void FillPacket(mbuf * m, size_t offset) const
 		{
 			auto * ip6 = GetMbufHeader<ip6_hdr>(m, offset);
 
@@ -205,8 +189,6 @@ namespace PktGen
 			ip6->ip6_plen = hton(ipv6_plen);
 			ip6->ip6_src = ipv6_src.GetAddr();
 			ip6->ip6_dst = ipv6_dst.GetAddr();
-
-			offset += GetLen();
 		}
 
 		Ipv6Template Next() const
@@ -217,17 +199,6 @@ namespace PktGen
 		Ipv6Template Retransmission() const
 		{
 			return *this;
-		}
-
-		template <typename NestingLevel>
-		static auto MakeNested(const SelfType & up)
-		{
-			return Ipv6Template<NestingLevel>(up);
-		}
-
-		UnnestedIpv6Template StripNesting() const
-		{
-			return UnnestedIpv6Template(*this);
 		}
 
 		void print(int depth) const
@@ -246,7 +217,7 @@ namespace PktGen
 
 	auto inline Ipv6Header()
 	{
-		return EncapsulatableHeader<UnnestedIpv6Template>();
+		return PacketTemplateWrapper(Ipv6Template());
 	}
 }
 

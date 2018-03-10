@@ -33,6 +33,8 @@
 #include "pktgen/Ethernet.h"
 #include "pktgen/Ipv4.h"
 #include "pktgen/Ipv6.h"
+#include "pktgen/Packet.h"
+#include "pktgen/PacketMatcher.h"
 #include "pktgen/PacketPayload.h"
 #include "pktgen/Tcp.h"
 
@@ -524,7 +526,7 @@ TYPED_TEST(TcpLroTestSuite, TestMergeAckData)
 TYPED_TEST(TcpLroTestSuite, TestIncrAck)
 {
 	auto pkt1 = this->GetPayloadTemplate()
-	    .WithHeaderFields(Layer::L4, ack(965), flags(TH_ACK))
+	    .WithHeader(Layer::L4).Fields(ack(965), flags(TH_ACK))
 	    .WithHeader(Layer::PAYLOAD).Fields(payload("abcd", 100));
 
 	auto pkt2 = pkt1.Next().WithHeader(Layer::L4).Fields(incrAck(1000));

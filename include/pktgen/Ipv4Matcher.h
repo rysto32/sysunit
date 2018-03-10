@@ -31,7 +31,7 @@
 
 #include <gmock/gmock-matchers.h>
 
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/Ipv4Header.h"
 
 struct mbuf;
 
@@ -40,11 +40,11 @@ namespace PktGen
 	class Ipv4Matcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		UnnestedIpv4Template header;
+		Ipv4Template header;
 		size_t headerOffset;
 
 	public:
-		Ipv4Matcher(UnnestedIpv4Template && header, size_t off);
+		Ipv4Matcher(const Ipv4Template & header, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -52,10 +52,9 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	template <typename Nesting>
-	auto inline PacketMatcher(const Ipv4Template<Nesting> & t, size_t off)
+	auto inline PacketMatcher(const Ipv4Template & t, size_t off)
 	{
-		return Ipv4Matcher(t.StripNesting(), off);
+		return Ipv4Matcher(t, off);
 	}
 }
 

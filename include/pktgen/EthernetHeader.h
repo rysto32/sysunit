@@ -31,15 +31,13 @@
 
 #include "fake/mbuf.h"
 
-#include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/EtherAddr.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/Packet.h"
 
 namespace PktGen {
 
-	template <typename Nesting>
 	class EthernetTemplate
 	{
 	private:
@@ -50,28 +48,17 @@ namespace PktGen {
 
 		uint16_t mbVlan;
 
-		typedef EthernetTemplate<Nesting> SelfType;
+		typedef EthernetTemplate SelfType;
 
 	public:
-		typedef typename Nesting::NextL2 NESTING_LEVEL;
-		typedef typename NESTING_LEVEL::L2 LAYER;
+		const static auto LAYER = LayerVal::L2;
 
-		typedef DefaultEncapFieldSetter EncapFieldSetter;
+		typedef DefaultOutwardFieldSetter OutwardFieldSetter;
 
 		EthernetTemplate()
 		  : ethertype(0),
 		    payloadLength(0),
 		    mbVlan(0)
-		{
-		}
-
-		template <typename U>
-		explicit EthernetTemplate(const EthernetTemplate<U> & h)
-		  : dst(h.GetDst()),
-		    src(h.GetSrc()),
-		    ethertype(h.GetEthertype()),
-		    payloadLength(h.GetPayloadLength()),
-		    mbVlan(h.GetMbufVlan())
 		{
 		}
 
@@ -115,9 +102,9 @@ namespace PktGen {
 			mbVlan = v;
 		}
 
-		void FillPacket(mbuf * m, size_t & offset) const
+		void FillPacket(mbuf * m, size_t offset) const
 		{
-			auto * eh = GetMbufHeader<ether_header>(m, offset);
+			auto * eh = GetMbufHeader<struct ether_header>(m, offset);
 
 			memcpy(eh->ether_dhost, dst.GetAddr(), ETHER_ADDR_LEN);
 			memcpy(eh->ether_shost, src.GetAddr(), ETHER_ADDR_LEN);
@@ -127,8 +114,6 @@ namespace PktGen {
 				m->m_pkthdr.ether_vtag = mbVlan;
 				m->m_flags |= M_VLANTAG;
 			}
-
-			offset += GetLen();
 		}
 
 		size_t GetLen() const
@@ -156,17 +141,6 @@ namespace PktGen {
 			return *this;
 		}
 
-		template <typename NestingLevel>
-		static auto MakeNested(const SelfType & up)
-		{
-			return EthernetTemplate<NestingLevel>(up);
-		}
-
-		UnnestedEthernetTemplate StripNesting() const
-		{
-			return UnnestedEthernetTemplate(*this);
-		}
-
 		void print(int depth) const
 		{
 			PrintIndent(depth, "Ether : {");
@@ -183,7 +157,7 @@ namespace PktGen {
 
 	auto inline EthernetHeader()
 	{
-		return EncapsulatableHeader<UnnestedEthernetTemplate>();
+		return PacketTemplateWrapper(EthernetTemplate());
 	}
 }
 

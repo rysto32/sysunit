@@ -36,7 +36,7 @@ using testing::MatchResultListener;
 
 namespace PktGen
 {
-	EthernetMatcher::EthernetMatcher(UnnestedEthernetTemplate && h, size_t off)
+	EthernetMatcher::EthernetMatcher(const EthernetTemplate & h, size_t off)
 	  : header(h),
 	    headerOffset(off)
 	{

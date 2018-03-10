@@ -38,7 +38,7 @@
 
 namespace PktGen
 {
-	TcpMatcher::TcpMatcher(UnnestedTcpTemplate && header, size_t offset)
+	TcpMatcher::TcpMatcher(const TcpTemplate & header, size_t offset)
 	  : header(header),
 	    headerOffset(offset)
 	{

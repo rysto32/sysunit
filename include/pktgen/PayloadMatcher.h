@@ -31,7 +31,7 @@
 
 #include <gmock/gmock-matchers.h>
 
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/PacketPayloadTemplate.h"
 
 struct mbuf;
 
@@ -40,7 +40,7 @@ namespace PktGen
 	class PayloadMatcher : public testing::MatcherInterface<mbuf*>
 	{
 	private:
-		UnnestedPayloadTemplate payload;
+		PayloadTemplate payload;
 		size_t headerOffset;
 
 		bool TestPattern(mbuf *m, int hdroff, size_t mbufNumber,
@@ -48,7 +48,7 @@ namespace PktGen
 		    testing::MatchResultListener* listener) const;
 
 	public:
-		PayloadMatcher(UnnestedPayloadTemplate && p, size_t off);
+		PayloadMatcher(const PayloadTemplate & p, size_t off);
 
 		virtual bool MatchAndExplain(mbuf*,
                     testing::MatchResultListener* listener) const override;
@@ -56,10 +56,9 @@ namespace PktGen
 		virtual void DescribeTo(::std::ostream* os) const override;
 	};
 
-	template <typename Nesting>
-	auto inline PacketMatcher(const PayloadTemplate<Nesting> & pkt, size_t off)
+	auto inline PacketMatcher(const PayloadTemplate & pkt, size_t off)
 	{
-		return PayloadMatcher(pkt.StripNesting(), off);
+		return PayloadMatcher(pkt, off);
 	}
 }
 

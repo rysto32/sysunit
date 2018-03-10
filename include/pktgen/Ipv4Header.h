@@ -38,17 +38,15 @@ extern "C" {
 #include <kern_include/netinet/ip.h>
 }
 
-#include "pktgen/EncapsulatableHeader.h"
 #include "pktgen/Ipv4Addr.h"
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/L3Fields.h"
 #include "pktgen/PayloadLength.h"
-#include "pktgen/PacketTemplates.h"
+#include "pktgen/Packet.h"
 
 namespace PktGen
 {
-	template <typename Nesting>
 	class Ipv4Template
 	{
 	private:
@@ -67,21 +65,20 @@ namespace PktGen
 		bool checksumVerified;
 		bool checksumPassed;
 
-		typedef Ipv4Template<Nesting> SelfType;
+		typedef Ipv4Template SelfType;
 
 	public:
-		typedef typename Nesting::NextL3 NESTING_LEVEL;
-		typedef typename NESTING_LEVEL::L3 LAYER;
+		static const auto LAYER = LayerVal::L3;
 
-		struct EncapFieldSetter
+		struct OutwardFieldSetter
 		{
 			template <typename Header>
-			Header operator()(const Header & h, const Ipv4Template & t) const
+			void operator()(Header & h, const Ipv4Template & t) const
 			{
-				DefaultEncapFieldSetter setter;
-				return setter(h, t).template With(
-				    ethertype(GetEthertype())
-				);
+				DefaultOutwardFieldSetter setter;
+
+				setter(h, t);
+				ethertype(GetEthertype())(h);
 			}
 		};
 
@@ -97,24 +94,6 @@ namespace PktGen
 		    checksum(0),
 		    checksumVerified(false),
 		    checksumPassed(false)
-		{
-		}
-
-		template <typename U>
-		explicit Ipv4Template(const Ipv4Template<U> & h)
-		  : headerLen(h.GetHeaderLen()),
-		    version(h.GetVersion()),
-		    tos(h.GetTos()),
-		    id(h.GetId()),
-		    off(h.GetOff()),
-		    ipLen(h.GetIpLen()),
-		    ttl(h.GetTtl()),
-		    proto(h.GetProto()),
-		    checksum(h.GetChecksum()),
-		    src(h.GetSrc()),
-		    dst(h.GetDst()),
-		    checksumVerified(h.GetChecksumVerified()),
-		    checksumPassed(h.GetChecksumPassed())
 		{
 		}
 
@@ -258,7 +237,7 @@ namespace PktGen
 			return ETHERTYPE_IP;
 		}
 
-		void FillPacket(mbuf * m,size_t & offset) const
+		void FillPacket(mbuf * m, size_t offset) const
 		{
 			auto * ip = GetMbufHeader<struct ip>(m, offset);
 
@@ -281,8 +260,6 @@ namespace PktGen
 					m->m_pkthdr.csum_flags |= CSUM_L3_VALID;
 				}
 			}
-
-			offset += GetLen();
 		}
 
 		size_t GetLen() const
@@ -302,17 +279,6 @@ namespace PktGen
 			return Next();
 		}
 
-		template <typename NestingLevel>
-		static auto MakeNested(const SelfType & up)
-		{
-			return Ipv4Template<NestingLevel>(up);
-		}
-
-		UnnestedIpv4Template StripNesting() const
-		{
-			return UnnestedIpv4Template(*this);
-		}
-
 		void print(int depth) const
 		{
 			PrintIndent(depth, "IPv4 : {");
@@ -326,7 +292,7 @@ namespace PktGen
 
 	auto inline Ipv4Header()
 	{
-		return EncapsulatableHeader<Ipv4Template<DefaultNestingLevel>>();
+		return PacketTemplateWrapper(Ipv4Template());
 	}
 }
 

@@ -36,6 +36,8 @@ extern "C" {
 #include <kern_include/netinet/ip.h>
 }
 
+#include <ostream>
+
 inline std::ostream & operator<<(std::ostream & os, struct in_addr a)
 {
 	os << (a.s_addr & 0xff) << "."
