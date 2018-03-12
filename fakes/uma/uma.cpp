@@ -20,6 +20,10 @@ struct uma_zone
 	size_t alloced;
 };
 
+static const char overflow_pattern[] = "sysunit redzone";
+
+static const size_t OVERFLOW_PATTERN_SIZE = sizeof(overflow_pattern);
+
 uma_zone_t
 uma_zcreate(const char *name, size_t size, uma_ctor ctor,
 		    uma_dtor dtor, uma_init uminit, uma_fini fini,
@@ -45,12 +49,36 @@ uma_zdestroy(uma_zone_t zone)
 	delete zone;
 }
 
+static void
+fill_redzone(void *mem, size_t objSize)
+{
+	char * redzone;
+
+	redzone = reinterpret_cast<char*>(mem) + objSize;
+	memcpy(redzone, overflow_pattern, OVERFLOW_PATTERN_SIZE);
+}
+
+static void
+verify_redzone(uma_zone_t zone, void *mem)
+{
+	char * redzone;
+	size_t i;
+
+	redzone = reinterpret_cast<char*>(mem) + zone->size;
+	for (i = 0; i < OVERFLOW_PATTERN_SIZE; i++) {
+		EXPECT_EQ(redzone[i], overflow_pattern[i]) <<
+		    "Found memory corruption following allocation from zone " << zone->name;
+	}
+}
+
 void *
 uma_zalloc_arg(uma_zone_t zone, void * arg, int flags)
 {
-	void * mem = ::operator new(zone->size);
+	void * mem = ::operator new(zone->size + OVERFLOW_PATTERN_SIZE);
 	if (mem == NULL)
 		return (NULL);
+
+	fill_redzone(mem, zone->size);
 
 	if (zone->init != NULL)
 		zone->init(mem, zone->size, flags);
@@ -75,6 +103,8 @@ uma_zfree_arg(uma_zone_t zone, void *mem, void *arg)
 
 	if (zone->fini != NULL)
 		zone->fini(mem, zone->size);
+
+	verify_redzone(zone, mem);
 
 	::operator delete(mem);
 }
