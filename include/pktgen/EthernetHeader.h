@@ -46,9 +46,11 @@ namespace PktGen::internal
 		EtherAddr dst;
 		EtherAddr src;
 		uint16_t ethertype;
+		uint16_t mbVlan;
+		size_t outerMtu;
+		size_t localMtu;
 		size_t payloadLength;
 
-		uint16_t mbVlan;
 
 		typedef EthernetTemplate SelfType;
 
@@ -59,8 +61,10 @@ namespace PktGen::internal
 
 		EthernetTemplate()
 		  : ethertype(0),
-		    payloadLength(0),
-		    mbVlan(0)
+		    mbVlan(0),
+		    outerMtu(DEFAULT_MTU),
+		    localMtu(DEFAULT_MTU),
+		    payloadLength(0)
 		{
 		}
 
@@ -131,6 +135,25 @@ namespace PktGen::internal
 		void SetPayloadLength(size_t len)
 		{
 			payloadLength = len;
+		}
+
+		size_t GetMtu() const
+		{
+			return std::min(localMtu, outerMtu);
+		}
+
+		void SetMtu(size_t x)
+		{
+			localMtu = x;
+		}
+
+		void SetOuterMtu(size_t x)
+		{
+			outerMtu = x;
+		}
+
+		void CalcSegmentation()
+		{
 		}
 
 		SelfType Next() const

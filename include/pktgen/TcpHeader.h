@@ -63,9 +63,16 @@ namespace PktGen::internal
 
 		bool checksumVerified;
 		bool checksumPassed;
+		size_t outerMtu;
+		size_t localMtu;
 		size_t payloadLength;
 
 		typedef TcpTemplate SelfType;
+
+		size_t GetMaxPayload() const
+		{
+			return GetMtu() - GetLen();
+		}
 
 	public:
 		static const auto LAYER = LayerVal::L4;
@@ -95,6 +102,8 @@ namespace PktGen::internal
 		    th_urp(0),
 		    checksumVerified(false),
 		    checksumPassed(false),
+		    outerMtu(DEFAULT_MTU),
+		    localMtu(DEFAULT_MTU),
 		    payloadLength(0)
 		{
 		}
@@ -221,7 +230,7 @@ namespace PktGen::internal
 
 		size_t GetPayloadLength() const
 		{
-			return payloadLength;
+			return std::min(GetMaxPayload(), payloadLength);
 		}
 
 		void SetPayloadLength(size_t len)
@@ -229,10 +238,26 @@ namespace PktGen::internal
 			payloadLength = len;
 		}
 
+		size_t GetMtu() const
+		{
+			return std::min(localMtu, outerMtu);
+		}
+
+		void SetMtu(size_t x)
+		{
+			localMtu = x;
+		}
+
+		void SetOuterMtu(size_t x)
+		{
+			outerMtu = x;
+		}
+
 		TcpTemplate Next() const
 		{
 			TcpTemplate copy(*this);
-			copy.SetSeq(th_seq + payloadLength);
+			copy.SetSeq(th_seq + GetPayloadLength());
+
 			return copy;
 		}
 
@@ -271,7 +296,7 @@ namespace PktGen::internal
 		{
 			PrintIndent(depth, "TCP : {");
 			PrintIndent(depth + 1, "seq : %d", th_seq);
-			PrintIndent(depth + 1, "payloadLen : %d", payloadLength);
+			PrintIndent(depth + 1, "payloadLen : %d", GetPayloadLength());
 			PrintIndent(depth, "}");
 		}
 	};

@@ -63,6 +63,8 @@ namespace PktGen::internal
 		Ipv4Addr src;
 		Ipv4Addr dst;
 
+		size_t outerMtu;
+		size_t localMtu;
 		bool checksumVerified;
 		bool checksumPassed;
 
@@ -93,6 +95,8 @@ namespace PktGen::internal
 		    ttl(255),
 		    proto(0),
 		    checksum(0),
+		    outerMtu(DEFAULT_MTU),
+		    localMtu(DEFAULT_MTU),
 		    checksumVerified(false),
 		    checksumPassed(false)
 		{
@@ -231,6 +235,23 @@ namespace PktGen::internal
 		void SetPayloadLength(size_t payLen)
 		{
 			ipLen = GetLen() + payLen;
+		}
+
+		size_t GetMtu() const
+		{
+			return std::min(localMtu, outerMtu);
+		}
+
+		void SetMtu(size_t x)
+		{
+			if (x > IP_MAXPACKET)
+				throw std::runtime_error("MTU too large for IPv4");
+			localMtu = x;
+		}
+
+		void SetOuterMtu(size_t x)
+		{
+			outerMtu = x;
 		}
 
 		constexpr static uint16_t GetEthertype()

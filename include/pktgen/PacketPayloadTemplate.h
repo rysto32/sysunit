@@ -31,6 +31,7 @@
 
 #include "fake/mbuf.h"
 
+#include "pktgen/CommonFields.h"
 #include "pktgen/FieldPropagator.h"
 #include "pktgen/Layer.h"
 #include "pktgen/PacketParsing.h"
@@ -47,6 +48,9 @@ namespace PktGen::internal
 	{
 	private:
 		PayloadVector payload;
+		size_t outerMtu;
+		size_t localMtu;
+		size_t payloadIndex;
 
 		typedef PayloadTemplate SelfType;
 
@@ -55,11 +59,17 @@ namespace PktGen::internal
 
 		typedef DefaultOutwardFieldSetter OutwardFieldSetter;
 
-		PayloadTemplate() = default;
+		PayloadTemplate()
+		  : outerMtu(DEFAULT_MTU),
+		    localMtu(DEFAULT_MTU),
+		    payloadIndex(0)
+		{
+		}
 
 		void SetPayload(const PayloadVector & p)
 		{
 			payload = p;
+			payloadIndex = 0;
 		}
 
 		void AppendPayload(const PayloadVector & p)
@@ -72,6 +82,9 @@ namespace PktGen::internal
 		{
 			if (s <= payload.size()) {
 				payload.resize(s);
+
+				if (s < payloadIndex)
+					payloadIndex = s;
 			} else {
 				throw std::runtime_error("Increasing length not supported yet");
 			}
@@ -81,7 +94,11 @@ namespace PktGen::internal
 		{
 			auto * pl = GetMbufHeader<uint8_t>(m, offset);
 
-			memcpy(pl, &payload[0], GetLen());
+			if (GetLen() == 0)
+				return;
+
+			size_t len = std::min(GetLen(), GetMtu());
+			memcpy(pl, &payload[payloadIndex], len);
 		}
 
 		void SetPayloadLength(size_t len)
@@ -95,9 +112,29 @@ namespace PktGen::internal
 			return 0;
 		}
 
+		size_t GetMtu() const
+		{
+			return std::min(localMtu, outerMtu);
+		}
+
+		void SetMtu(size_t x)
+		{
+			localMtu = x;
+		}
+
+		void SetOuterMtu(size_t x)
+		{
+			outerMtu = x;
+		}
+
 		size_t GetLen() const
 		{
-			return payload.size();
+			return std::min(payload.size() - payloadIndex, localMtu);
+		}
+
+		size_t GetFillLen() const
+		{
+			return std::min(GetLen(), outerMtu);
 		}
 
 		const PayloadVector & GetPayload() const
@@ -105,9 +142,22 @@ namespace PktGen::internal
 			return payload;
 		}
 
+		size_t GetStartIndex() const
+		{
+			return payloadIndex;
+		}
+
 		PayloadTemplate Next() const
 		{
-			return *this;
+			PayloadTemplate copy(*this);
+
+			size_t len = GetLen();
+			if (len <= GetMtu())
+				copy.payloadIndex += len;
+			else
+				copy.payloadIndex += GetMtu();
+
+			return copy;
 		}
 
 		PayloadTemplate Retransmission() const
@@ -135,6 +185,8 @@ namespace PktGen::internal
 		{
 			PrintIndent(depth, "Payload = {");
 			PrintIndent(depth + 1, "len = %zd", GetLen());
+			PrintIndent(depth + 1, "off = %zd", payloadIndex);
+			PrintIndent(depth + 1, "mtu = %zd", GetMtu());
 			PrintIndent(depth, "}");
 		}
 	};

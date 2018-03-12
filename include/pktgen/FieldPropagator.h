@@ -41,6 +41,15 @@ namespace PktGen::internal
 			PayloadLengthSetter<Lower>()(l, u.GetLen() + u.GetPayloadLength());
 		}
 	};
+
+	struct DefaultInwardFieldSetter
+	{
+		template <typename Lower, typename Upper>
+		void operator()(const Lower & l, Upper & u) const
+		{
+			u.SetOuterMtu(l.GetMtu() - l.GetLen());
+		}
+	};
 }
 
 #endif

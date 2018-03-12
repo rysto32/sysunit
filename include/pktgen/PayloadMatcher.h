@@ -45,7 +45,7 @@ namespace PktGen::internal
 
 		bool TestPattern(mbuf *m, int hdroff, size_t mbufNumber,
 		    size_t & payloadIndex, const std::vector<uint8_t> & payloadBytes,
-		    testing::MatchResultListener* listener) const;
+		    size_t payloadLen, testing::MatchResultListener* listener) const;
 
 	public:
 		PayloadMatcher(const PayloadTemplate & p, size_t off);

@@ -52,5 +52,13 @@ TEST_PACKETENCAPSULATION_LIBS := \
 TEST_PACKETPAYLOAD_LIBS := \
 	$(MBUF_LIBS) \
 
+TEST_PACKETPAYLOAD_SRCS := \
+	EtherAddr.cpp \
+	Ipv4Matcher.cpp \
+	Ipv6Addr.cpp \
+	Ipv6Matcher.cpp \
+	PayloadMatcher.cpp \
+	TcpMatcher.cpp \
+
 TEST_TCPHEADER_LIBS := \
 	$(MBUF_LIBS) \

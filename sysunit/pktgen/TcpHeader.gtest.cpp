@@ -63,12 +63,12 @@ public:
 	}
 
 	template <typename Header>
-	void ExpectHeader(const Header & header, struct tcphdr *expected)
+	void ExpectHeader(const Header & header, struct tcphdr *expected, size_t paylen = 0)
 	{
 		MbufPtr m = header.Generate();
 		auto * tcp = GetMbufHeader<tcphdr>(m);
 
-		EXPECT_EQ(m->m_pkthdr.len, sizeof(struct tcphdr));
+		EXPECT_EQ(m->m_pkthdr.len, sizeof(struct tcphdr) + paylen);
 
 		EXPECT_EQ(tcp->th_sport, expected->th_sport);
 		EXPECT_EQ(tcp->th_dport, expected->th_dport);
@@ -89,6 +89,20 @@ public:
 		uint16_t totalLen = sizeof(struct tcphdr) + expectedPayload;
 
 		EXPECT_EQ(m->m_pkthdr.len, totalLen);
+	}
+
+	template <typename Header>
+	void VerifyMbufPayload(const Header & header, char expectedByte, size_t expectedPayload)
+	{
+		MbufPtr m = header.Generate();
+		size_t totalLen = sizeof(struct tcphdr) + expectedPayload;
+
+		ASSERT_EQ(m->m_pkthdr.len, totalLen);
+
+		char * payload = GetMbufHeader<char>(m, sizeof(struct tcphdr));
+		for (size_t i = 0; i < expectedPayload; ++i) {
+			ASSERT_EQ(payload[i], expectedByte);
+		}
 	}
 };
 
@@ -206,7 +220,7 @@ TEST_F(TcpHeaderTestSuite, TestNext)
 			.With(payload(0x00, payloadLen))
 	);
 
-	auto p2 = p1.Next().WithHeader(Layer::PAYLOAD).Fields(length(0));
+	auto p2 = p1.Next();
 
 	MbufPtr m = p1.Generate();
 	struct tcphdr * expected = GetMbufHeader<struct tcphdr>(m);
@@ -220,6 +234,9 @@ TEST_F(TcpHeaderTestSuite, TestNext)
 // retransmission.  Verify that all fields in the header are the same.
 TEST_F(TcpHeaderTestSuite, TestRetransmission)
 {
+	const char * testPayload = "testpayload";
+	size_t payloadLen = 300;
+
 	auto p1 = PacketTemplate(
 		TcpHeader()
 			.With(
@@ -231,7 +248,9 @@ TEST_F(TcpHeaderTestSuite, TestRetransmission)
 				window(10),
 				checksum(386),
 				urp(486)
-			)
+			),
+		PacketPayload()
+		   .With(payload(testPayload, payloadLen))
 	);
 
 	auto p2 = p1.Retransmission();
@@ -239,7 +258,12 @@ TEST_F(TcpHeaderTestSuite, TestRetransmission)
 	MbufPtr m = p1.Generate();
 	struct tcphdr * expected = GetMbufHeader<struct tcphdr>(m);
 
-	ExpectHeader(p2, expected);
+	ExpectHeader(p2, expected, payloadLen);
+
+	m = p2.Generate();
+	uint8_t * payload = GetMbufHeader<uint8_t>(m, sizeof(struct tcphdr));
+
+	ASSERT_EQ(memcmp(testPayload, payload, strlen(testPayload)), 0);
 }
 
 // Create packet templates with various sized payloads in them and verify that
@@ -258,4 +282,26 @@ TEST_F(TcpHeaderTestSuite, TestPayload)
 
 	auto p3 = p1.WithHeader(Layer::PAYLOAD).Fields(payload("ipv4", 6018));
 	VerifyMbufChainLen(p3, 6018);
+}
+
+TEST_F(TcpHeaderTestSuite, TestSegmentation)
+{
+	size_t mss = 1448;
+	size_t maxPayload = mss - sizeof(struct tcphdr);
+	size_t lastSegLen = 500;
+	size_t paylen = 2 * maxPayload + lastSegLen;
+
+	auto p1 = PacketTemplate(
+	    TcpHeader().With(mtu(mss)),
+	    PacketPayload().With(payload('a', paylen))
+	);
+
+	auto p2 = p1.Next();
+	auto p3 = p2.Next();
+	auto p4 = p3.Next();
+
+	VerifyMbufPayload(p1, 'a', maxPayload);
+	VerifyMbufPayload(p2, 'a', maxPayload);
+	VerifyMbufPayload(p3, 'a', lastSegLen);
+	VerifyMbufChainLen(p4, 0);
 }

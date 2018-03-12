@@ -29,22 +29,10 @@
 #ifndef PKTGEN_L2_FIELDS_H
 #define PKTGEN_L2_FIELDS_H
 
-#include "pktgen/EtherAddr.h"
+#include "pktgen/CommonFields.h"
 
 namespace PktGen
 {
-	template <typename Addr>
-	auto inline src(Addr x)
-	{
-		return [x](auto & h) { h.SetSrc(x); };
-	}
-
-	template <typename Addr>
-	auto inline dst(Addr x)
-	{
-		return [x](auto & h) { h.SetDst(x); };
-	}
-
 	auto inline ethertype(uint16_t t)
 	{
 		return [t](auto & h) { h.SetEthertype(t); };

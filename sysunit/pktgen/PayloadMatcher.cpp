@@ -48,21 +48,25 @@ namespace PktGen::internal
 
 	bool PayloadMatcher::TestPattern(mbuf *m, int hdroff, size_t mbufNumber,
 	    size_t & payloadIndex, const std::vector<uint8_t> & payloadBytes,
-	    MatchResultListener* listener) const
+	    size_t payloadLen, MatchResultListener* listener) const
 	{
 		auto * ptr = GetMbufHeader<uint8_t>(m, 0);
 
 		int mbIndex = hdroff;
 		size_t payIndex = payloadIndex;
 
-		while (mbIndex < m->m_len && payIndex < payloadBytes.size()) {
+		while (mbIndex < m->m_len && payIndex < payloadLen) {
 			if (payloadBytes.at(payIndex) != ptr[mbIndex]) {
 				*listener << "Payload incorrect at mbuf " <<
 				    mbufNumber << " index " << mbIndex <<
 				    " (payload index " << payIndex << ")" <<
-				    " value " << std::hex << int(ptr[mbIndex]) << "('" << ptr[mbIndex] << "')"
-				    << " (expected " << int(payloadBytes.at(payIndex)) <<
-				    "('" << payloadBytes.at(payIndex) << "'))";
+				    " value " << std::hex << int(ptr[mbIndex]);
+				if (std::isprint(ptr[mbIndex]))
+					*listener << "('" << (char)ptr[mbIndex] << "')";
+
+				*listener << " (expected " << int(payloadBytes.at(payIndex));
+				if (std::isprint(payloadBytes.at(payIndex)))
+					*listener <<  "('" << (char)payloadBytes.at(payIndex) << "'))";
 				return false;
 			}
 
@@ -77,19 +81,21 @@ namespace PktGen::internal
 	bool PayloadMatcher::MatchAndExplain(mbuf* m, MatchResultListener* listener) const
 	{
 		const auto & payloadBytes = payload.GetPayload();
-		if (m->m_pkthdr.len < payloadBytes.size()) {
-			*listener << "packet len is " << m->m_pkthdr.len
-			    << " (expected " << payloadBytes.size() << ")";
-			return false;
-		}
 
 		int hdroff = headerOffset;
 		size_t mbufNumber = 0;
-		size_t payloadIndex = 0;
+		size_t payloadIndex = payload.GetStartIndex();
+		size_t payloadLen = payload.GetFillLen();
+
+		if ((m->m_pkthdr.len - headerOffset) < payloadLen) {
+			*listener << "payload len is " << m->m_pkthdr.len - headerOffset
+			    << " (expected " << payloadLen << ")";
+			return false;
+		}
 
 		while (m != nullptr && payloadIndex < payloadBytes.size()) {
 			bool matched = TestPattern(m, hdroff, mbufNumber, payloadIndex,
-				payloadBytes, listener);
+				payloadBytes, payloadLen, listener);
 			if (!matched)
 				return false;
 
@@ -97,8 +103,6 @@ namespace PktGen::internal
 			hdroff = 0;
 			m = m->m_next;
 		}
-
-// 			ASSERT_EQ(remaining, 0);
 
 		return true;
 	}

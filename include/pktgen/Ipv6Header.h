@@ -60,6 +60,9 @@ namespace PktGen::internal
 		Ipv6Addr ipv6_src;
 		Ipv6Addr ipv6_dst;
 
+		size_t outerMtu;
+		size_t localMtu;
+
 		typedef Ipv6Template SelfType;
 
 	public:
@@ -83,7 +86,9 @@ namespace PktGen::internal
 		    ipv6_flow(0),
 		    ipv6_plen(0),
 		    ipv6_nxt(0),
-		    ipv6_hlim(255)
+		    ipv6_hlim(255),
+		    outerMtu(DEFAULT_MTU),
+		    localMtu(DEFAULT_MTU)
 		{
 		}
 
@@ -165,6 +170,23 @@ namespace PktGen::internal
 		void SetDst(const Ipv6Addr & x)
 		{
 			ipv6_dst = x;
+		}
+
+		size_t GetMtu() const
+		{
+			return std::min(localMtu, outerMtu);
+		}
+
+		void SetMtu(size_t x)
+		{
+			if (x > IPV6_MAXPACKET)
+				throw std::runtime_error("IPV6 jumbo packet not supported");
+			localMtu = x;
+		}
+
+		void SetOuterMtu(size_t x)
+		{
+			outerMtu = x;
 		}
 
 		size_t GetLen() const

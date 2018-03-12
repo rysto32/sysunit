@@ -529,11 +529,13 @@ TYPED_TEST(TcpLroTestSuite, TestIncrAck)
 	    .WithHeader(Layer::L4).Fields(ack(965), flags(TH_ACK))
 	    .WithHeader(Layer::PAYLOAD).Fields(payload("abcd", 100));
 
-	auto pkt2 = pkt1.Next().WithHeader(Layer::L4).Fields(incrAck(1000));
+	auto pkt2 = pkt1.Next()
+	    .WithHeader(Layer::L4).Fields(incrAck(1000))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("wxyz", 100));
 
 	auto expected = pkt1
 	    .WithHeader(Layer::L4).Fields(incrAck(1000))
-	    .WithHeader(Layer::PAYLOAD).Fields(appendPayload("abcd", 100));
+	    .WithHeader(Layer::PAYLOAD).Fields(appendPayload("wxyz", 100));
 
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
 	    .Times(1);

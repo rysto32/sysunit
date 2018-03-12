@@ -31,6 +31,7 @@
 
 #include "fake/mbuf.h"
 
+#include "pktgen/FieldPropagator.h"
 #include "pktgen/Layer.h"
 #include "pktgen/MbufPtr.h"
 #include "pktgen/PayloadLength.h"
@@ -207,6 +208,20 @@ namespace PktGen::internal
 		{
 		}
 
+		template <typename First, typename Second, typename...Rest>
+		static void PropagateInwards(First & first, Second & second, Rest &... rest)
+		{
+			DefaultInwardFieldSetter setter;
+			setter(first, second);
+
+			PropagateInwards(second, rest...);
+		}
+
+		template <typename First>
+		static void PropagateInwards(First & first)
+		{
+		}
+
 		void PropagateOutwardFieldSetters()
 		{
 			std::apply([] (auto &... headers)
@@ -215,18 +230,39 @@ namespace PktGen::internal
 				}, headers);
 		}
 
+		void PropagateInwardFieldSetters()
+		{
+			std::apply([] (auto &... headers)
+				{
+					PropagateInwards(headers...);
+				}, headers);
+		}
+
+		void PropagateFields()
+		{
+			PropagateInwardFieldSetters();
+			PropagateOutwardFieldSetters();
+		}
+
+		template <typename Header>
+		static void FillFromHeader(struct mbuf *m, const Header & header,
+		    size_t & offset, size_t & payloadIndex)
+		{
+			header.FillPacket(m, offset);
+			offset += header.GetLen();
+		}
 
 	public:
 		explicit PacketTemplateWrapper(Headers... h)
 		  : headers(std::make_tuple(h...))
 		{
-			PropagateOutwardFieldSetters();
+			PropagateFields();
 		}
 
 		explicit PacketTemplateWrapper(const std::tuple<Headers...> & h)
 		  : headers(h)
 		{
-			PropagateOutwardFieldSetters();
+			PropagateFields();
 		}
 
 		template <typename... Fields>
@@ -254,7 +290,8 @@ namespace PktGen::internal
 			std::apply( [&m] (const auto &... header)
 				{
 					size_t offset = 0;
-					((header.FillPacket(m.get(), offset), offset += header.GetLen()), ...);
+					size_t payloadIndex = 0;
+					(FillFromHeader(m.get(), header, offset, payloadIndex), ...);
 				},
 				headers);
 

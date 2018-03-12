@@ -26,69 +26,46 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_L3_FIELDS_H
-#define PKTGEN_L3_FIELDS_H
-
-#include "pktgen/CommonFields.h"
+#ifndef PKTGEN_COMMON_FIELDS_H
+#define PKTGEN_COMMON_FIELDS_H
 
 namespace PktGen
 {
-	auto inline ipVersion(uint8_t x)
+	template <typename Addr>
+	auto inline src(Addr x)
 	{
-		return [x] (auto & h) { h.SetVersion(x); };
+		return [x](auto & h) { h.SetSrc(x); };
 	}
 
-	auto inline headerLength(uint8_t x)
+	template <typename Addr>
+	auto inline dst(Addr x)
 	{
-		return [x] (auto & h) { h.SetHeaderLen(x); };
+		return [x](auto & h) { h.SetDst(x); };
 	}
 
-	auto inline tos(uint8_t x)
+	auto inline mtu(size_t t)
 	{
-		return [x](auto & h) { h.SetTos(x); };
+		return [t] (auto & h) { h.SetMtu(t); };
 	}
 
-	auto inline id(uint16_t x)
+	auto inline checksum(uint16_t x)
 	{
-		return [x](auto & h) { h.SetId(x); };
+		return [x](auto & h) { h.SetChecksum(x); };
 	}
 
-	auto inline incrId(uint32_t x)
+	auto inline checksumVerified(bool verified = true)
 	{
-		return [x] (auto & h)
-		{
-			h.SetId(h.GetId() + x);
-		};
+		return [verified] (auto & h) { h.SetChecksumVerified(verified); };
 	}
 
-	auto inline fragOffset(uint16_t x)
+	auto inline checksumPassed(bool valid = true)
 	{
-		return [x] (auto & h) { h.SetOff(x); } ;
+		return [valid] (auto & h) { h.SetChecksumPassed(valid); };
 	}
 
-	auto inline ttl(uint8_t x)
+	namespace internal
 	{
-		return [x](auto & h) { h.SetTtl(x); };
-	}
-
-	auto inline proto(uint8_t x)
-	{
-		return [x](auto & h) { h.SetProto(x); };
-	}
-
-	auto inline trafficClass(uint8_t x)
-	{
-		return [x] (auto & h) { h.SetClass(x); };
-	}
-
-	auto inline flow(uint32_t x)
-	{
-		return [x] (auto & h) { h.SetFlow(x); };
-	}
-
-	auto inline hopLimit(uint8_t x)
-	{
-		return [x] (auto & h) { h.SetHopLimit(x); };
+		static const size_t DEFAULT_MTU = std::numeric_limits<size_t>::max();
 	}
 }
 
