@@ -13,7 +13,6 @@ TEST_TCP_LRO_LIBS := \
 	fake_mbuf \
 	fake_atomic \
 	fake_mib \
-	fake_mutex \
 	fake_panic \
 	fake_uma \
 	fake_phash \
