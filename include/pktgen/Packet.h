@@ -149,43 +149,30 @@ namespace PktGen::internal
 		}
 
 		template <LayerVal Layer, int Nesting, typename Header, typename...Rest>
-		static constexpr
-		typename std::enable_if<Layer != Header::LAYER, std::size_t>::type
+		static constexpr std::size_t
 		FindLayerFromOuter()
 		{
-			return SelfType::FindLayerFromOuter<Layer, Nesting, Rest...>() + 1;
-		}
+			if constexpr (Layer != Header::LAYER)
+				return SelfType::FindLayerFromOuter<Layer, Nesting, Rest...>() + 1;
+			else {
+				static_assert(Nesting > 0);
 
-		template <LayerVal Layer, int Nesting, typename Header, typename...Rest>
-		static constexpr
-		typename std::enable_if<Layer == Header::LAYER && std::greater<int>()(Nesting, 1), std::size_t>::type
-		FindLayerFromOuter()
-		{
-			return SelfType::FindLayerFromOuter<Layer, Nesting - 1, Rest...>() + 1;
-		}
+				if constexpr (Nesting > 1)
+					return SelfType::FindLayerFromOuter<Layer, Nesting - 1, Rest...>() + 1;
+				else
+					return 0;
+			}
 
-		template <LayerVal Layer, int Nesting, typename Header, typename...Rest>
-		static constexpr
-		typename std::enable_if<Layer == Header::LAYER && Nesting == 1, std::size_t>::type
-		FindLayerFromOuter()
-		{
-			return 0;
 		}
 
 		template <LayerVal Layer, typename Header, typename...Rest>
-		static constexpr
-		typename std::enable_if<Layer != Header::LAYER, std::size_t>::type
+		static constexpr std::size_t
 		CountLayers()
 		{
-			return SelfType::CountLayers<Layer, Rest...>();
-		}
-
-		template <LayerVal Layer, typename Header, typename...Rest>
-		static constexpr
-		typename std::enable_if<Layer == Header::LAYER, std::size_t>::type
-		CountLayers()
-		{
-			return SelfType::CountLayers<Layer, Rest...>() + 1;
+			if constexpr (Layer == Header::LAYER)
+				return SelfType::CountLayers<Layer, Rest...>() + 1;
+			else
+				return SelfType::CountLayers<Layer, Rest...>();
 		}
 
 		template <LayerVal Layer>
