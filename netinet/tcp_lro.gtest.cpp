@@ -781,8 +781,8 @@ TYPED_TEST(TcpLroTestSuite, TestTwoFlows)
 		.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow1_payload2));
 
 	// We expect if_input to be called with a single TCP packet with the
-	// same header as the first packet but with the larger window and the
-	// payloads of the two packets merged.
+	// same header as the first packet but with the larger window of the
+	// second packet, and the payloads of the two packets merged.
 	auto flow2_expect = flow2_pkt1
 		.WithHeader(Layer::L4).Fields(incrWindow(+72))
 		.WithHeader(Layer::PAYLOAD).Fields(appendPayload(flow2_payload2));
