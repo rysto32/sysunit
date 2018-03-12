@@ -277,7 +277,7 @@ TEST_F(PacketEncapsulationTestSuite, TestDoubleInner)
 			ack(398),
 			flags(TH_ACK),
 			window(4)
-		).WithHeader(Layer::PAYLOAD).Fields(
+		).WithHeader(NestedLayer::PAYLOAD<-1>).Fields(
 			payload("abcdefgh")
 		);
 
