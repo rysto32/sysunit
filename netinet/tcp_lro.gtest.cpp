@@ -594,7 +594,7 @@ TYPED_TEST(TcpLroTestSuite, TestIncrPureAck)
 }
 
 // Send a pure ACK followed by a duplicate ACK.  Confirm that the original
-// ACK is sent up the second and the dup ACK is rejected by LRO (which would
+// ACK is sent up the stack and the dup ACK is rejected by LRO (which would
 // force a real Ethernet driver to send the dup ACK up the stack immediately).
 TYPED_TEST(TcpLroTestSuite, TestDupAck)
 {
