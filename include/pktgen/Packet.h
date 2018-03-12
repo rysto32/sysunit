@@ -61,7 +61,7 @@ namespace PktGen::internal
 		struct WithHeaderImpl;
 
 		template <std::size_t... Indices, typename... Types>
-		static auto SliceFrontImpl(std::index_sequence<Indices...>, std::tuple<Types...> tuple)
+		static auto SliceFrontImpl(std::index_sequence<Indices...>, const std::tuple<Types...> & tuple)
 		{
 			return std::make_tuple(std::get<Indices>(tuple)...);
 		}
@@ -73,7 +73,7 @@ namespace PktGen::internal
 		}
 
 		template <std::size_t index, std::size_t... Indices, typename... Types>
-		static auto SliceBackImpl(std::index_sequence<Indices...>, std::tuple<Types...> tuple)
+		static auto SliceBackImpl(std::index_sequence<Indices...>, const std::tuple<Types...> & tuple)
 		{
 			return std::make_tuple(std::get<Indices + index + 1>(tuple)...);
 		}
@@ -116,13 +116,13 @@ namespace PktGen::internal
 		};
 
 		template <typename... Types>
-		static auto Head(std::tuple<Types...> tuple)
+		static auto Head(const std::tuple<Types...> & tuple)
 		{
 			return SliceFront<sizeof...(Types) - 1>(tuple);
 		}
 
 		template <typename... Types>
-		static auto Tail(std::tuple<Types...> tuple)
+		static const auto & Tail(const std::tuple<Types...> & tuple)
 		{
 			return std::get<sizeof...(Types) - 1>(tuple);
 		}
@@ -132,20 +132,21 @@ namespace PktGen::internal
 		{
 			T copy(original);
 
-			return ApplyMutators(copy, mutators...);
+			ApplyMutators(copy, mutators...);
+
+			return std::move(copy);
 		}
 
 		template <typename T, typename Mutator, typename... Rest>
-		static T & ApplyMutators(T & header, const Mutator & m, Rest... rest)
+		static void ApplyMutators(T & header, const Mutator & m, Rest... rest)
 		{
 			m(header);
-			return ApplyMutators(header, rest...);
+			ApplyMutators(header, rest...);
 		}
 
 		template <typename T>
-		static T & ApplyMutators(T & header)
+		static void ApplyMutators(T & header)
 		{
-			return header;
 		}
 
 		template <LayerVal Layer, int Nesting, typename Header, typename...Rest>
@@ -229,14 +230,14 @@ namespace PktGen::internal
 		}
 
 		template <typename... Fields>
-		SelfType With(Fields... f) const
+		SelfType With(const Fields &... f) const
 		{
 			return SelfType(std::tuple_cat(Head(headers),
 			    std::make_tuple(Apply(Tail(headers), f...))));
 		}
 
 		template <LayerVal Layer, int Nesting>
-		auto WithHeader(LayerImpl<Layer, Nesting> l) const
+		auto WithHeader(const LayerImpl<Layer, Nesting> & l) const
 		{
 			return FieldsImpl<FindLayer<Layer, Nesting>()>(headers);
 		}
