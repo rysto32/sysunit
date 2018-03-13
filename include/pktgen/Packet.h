@@ -36,11 +36,6 @@
 #include "pktgen/MbufPtr.h"
 #include "pktgen/PayloadLength.h"
 
-extern "C" {
-#include <kern_include/sys/types.h>
-#include <kern_include/netinet/in.h>
-}
-
 #include <algorithm>
 #include <memory>
 #include <stdio.h>
