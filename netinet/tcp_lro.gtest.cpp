@@ -293,6 +293,8 @@ public:
 
 	static size_t GetNetworkHeaderLen();
 
+	void TestUnsupportedFlag(uint8_t flag);
+
 	// For convenience, this function can be called to create a
 	// packet template for a pure TCP packet (no payload)
 	static auto GetTcpTemplate()
@@ -1072,4 +1074,74 @@ TYPED_TEST(TcpLroTestSuite, TestAutoFlush)
 
 		pktTemplate = pktTemplate.Next();
 	}
+}
+
+// Send a data packet followed by a packet with an TCP flag that LRO
+// does not support merging into other packets.  Verify that the data
+// packet is flushed up the stack and the second packet with the unsupported
+// flag is rejected.
+template <typename Header>
+void
+TcpLroTestSuite<Header>::TestUnsupportedFlag(uint8_t flag)
+{
+	auto pkt1 = this->GetPayloadTemplate()
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("testing"));
+
+	auto pkt2 = pkt1.Next()
+	    .WithHeader(Layer::L4).Fields(flags(flag));
+
+	this->TestRejectSecond(pkt1, pkt2);
+}
+
+// Send a SYN and a SYN-ACK from different flows to LRO.  Verify that they
+// are immediately rejected.
+TYPED_TEST(TcpLroTestSuite, TestSyn)
+{
+	auto syn = this->GetTcpTemplate()
+	    .WithHeader(Layer::L4).Fields(flags(TH_SYN));
+
+	auto synack = this->GetTcpTemplate()
+	    .WithHeader(Layer::L4).Fields(
+		src(4545),
+	        dst(59621),
+	        flags(TH_SYN | TH_ACK)
+	    );
+
+	MbufPtr m = syn.Generate();
+	int ret = tcp_lro_rx(&this->lc, m.get(), 0);
+	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+
+	m = synack.Generate();
+	ret = tcp_lro_rx(&this->lc, m.get(), 0);
+	ASSERT_EQ(ret, TCP_LRO_CANNOT);
+}
+
+TYPED_TEST(TcpLroTestSuite, TestFin)
+{
+	this->TestUnsupportedFlag(TH_FIN);
+}
+
+TYPED_TEST(TcpLroTestSuite, TestFinAck)
+{
+	this->TestUnsupportedFlag(TH_FIN | TH_ACK);
+}
+
+TYPED_TEST(TcpLroTestSuite, TestRst)
+{
+	this->TestUnsupportedFlag(TH_RST);
+}
+
+TYPED_TEST(TcpLroTestSuite, TestUrg)
+{
+	this->TestUnsupportedFlag(TH_URG);
+}
+
+TYPED_TEST(TcpLroTestSuite, TestEce)
+{
+	this->TestUnsupportedFlag(TH_ECE);
+}
+
+TYPED_TEST(TcpLroTestSuite, TestCwr)
+{
+	this->TestUnsupportedFlag(TH_CWR);
 }
