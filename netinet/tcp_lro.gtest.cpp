@@ -59,14 +59,14 @@ extern "C" {
 void PrintIndent(int depth, const char * fmt, ...)
 {
 	for (int i = 0; i < depth; ++i)
-		printf("    ");
+		fprintf(stderr, "    ");
 
 	va_list args;
 	va_start (args, fmt);
-	vprintf(fmt, args);
+	vfprintf(stderr, fmt, args);
 	va_end(args);
 
-	printf("\n");
+	fprintf(stderr, "\n");
 }
 
 using namespace PktGen;
