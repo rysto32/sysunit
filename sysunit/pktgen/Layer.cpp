@@ -59,12 +59,20 @@ namespace PktGen::internal
 		str << shortName << "<" << nesting << ">";
 		return str.str();
 	}
+}
 
-	namespace Layer
-	{
-		extern const LayerImpl<LayerVal::L2, 1> L2 = NestedLayer::L2<1>;
-		extern const LayerImpl<LayerVal::L3, 1> L3 = NestedLayer::L3<1>;
-		extern const LayerImpl<LayerVal::L4, 1> L4 = NestedLayer::L4<1>;
-		extern const LayerImpl<LayerVal::PAYLOAD, 1> PAYLOAD = NestedLayer::PAYLOAD<1>;
-	}
+namespace PktGen::Layer
+{
+	const internal::LayerImpl<internal::LayerVal::L2, 1> L2;
+	const internal::LayerImpl<internal::LayerVal::L3, 1> L3;
+	const internal::LayerImpl<internal::LayerVal::L4, 1> L4;
+	const internal::LayerImpl<internal::LayerVal::PAYLOAD, 1> PAYLOAD;
+
+	const internal::LayerImpl<internal::LayerVal::L2, 1> OUTER_L2;
+	const internal::LayerImpl<internal::LayerVal::L3, 1> OUTER_L3;
+	const internal::LayerImpl<internal::LayerVal::L4, 1> OUTER_L4;
+
+	const internal::LayerImpl<internal::LayerVal::L2, -1> INNER_L2;
+	const internal::LayerImpl<internal::LayerVal::L3, -1> INNER_L3;
+	const internal::LayerImpl<internal::LayerVal::L4, -1> INNER_L4;
 }

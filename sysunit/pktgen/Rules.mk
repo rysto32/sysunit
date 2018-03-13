@@ -29,15 +29,20 @@ MBUF_LIBS := \
 
 TEST_ETHERNETHEADER_SRCS := \
 	EtherAddr.cpp \
+	Layer.cpp \
 
 TEST_ETHERNETHEADER_LIBS := \
 	$(MBUF_LIBS) \
+
+TEST_IPV4HEADER_SRCS := \
+	Layer.cpp \
 
 TEST_IPV4HEADER_LIBS := \
 	$(MBUF_LIBS) \
 
 TEST_IPV6HEADER_SRCS := \
 	Ipv6Addr.cpp \
+	Layer.cpp \
 
 TEST_IPV6HEADER_LIBS := \
 	$(MBUF_LIBS) \
@@ -45,6 +50,7 @@ TEST_IPV6HEADER_LIBS := \
 TEST_PACKETENCAPSULATION_SRCS := \
 	EtherAddr.cpp \
 	Ipv6Addr.cpp \
+	Layer.cpp \
 
 TEST_PACKETENCAPSULATION_LIBS := \
 	$(MBUF_LIBS) \
@@ -57,8 +63,12 @@ TEST_PACKETPAYLOAD_SRCS := \
 	Ipv4Matcher.cpp \
 	Ipv6Addr.cpp \
 	Ipv6Matcher.cpp \
+	Layer.cpp \
 	PayloadMatcher.cpp \
 	TcpMatcher.cpp \
+
+TEST_TCPHEADER_SRCS := \
+	Layer.cpp \
 
 TEST_TCPHEADER_LIBS := \
 	$(MBUF_LIBS) \
