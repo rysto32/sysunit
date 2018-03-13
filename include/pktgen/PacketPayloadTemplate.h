@@ -107,6 +107,9 @@ namespace PktGen::internal
 				throw std::runtime_error("Payload does not support encapsulated headers");
 		}
 
+		// This returns the length of the payload encapsulated in this
+		// header.  As a Payload does not allow anything to be
+		// encapsulated within it this is always 0.
 		size_t GetPayloadLength() const
 		{
 			return 0;
