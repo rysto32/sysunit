@@ -36,6 +36,7 @@
 #include <kern_include/sys/malloc.h>
 #include <kern_include/sys/mbuf.h>
 #include <kern_include/vm/uma.h>
+#include <kern_include/vm/uma_dbg.h>
 
 #include <fake/mbuf.h>
 
@@ -199,7 +200,10 @@ alloc_mbuf(size_t len)
 	if (len <= MHLEN)
 		return (m);
 
-	ext = malloc(len, M_SYSUNIT_MBUF, M_ZERO | M_WAITOK);
+	ext = malloc(len, M_SYSUNIT_MBUF, M_WAITOK);
+
+	// Fill the mbuf with junk
+	trash_dtor(ext, len, NULL);
 
 	m_extadd(m, ext, len, m_ext_free_malloc, NULL, NULL, 0, EXT_MOD_TYPE);
 	return (m);
