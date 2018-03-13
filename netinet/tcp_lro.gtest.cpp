@@ -291,6 +291,8 @@ public:
 	// header.
 	static auto GetNetworkLayerTemplate();
 
+	static size_t GetNetworkHeaderLen();
+
 	// For convenience, this function can be called to create a
 	// packet template for a pure TCP packet (no payload)
 	static auto GetTcpTemplate()
@@ -343,6 +345,12 @@ auto TcpLroTestSuite<IPv4>::GetNetworkLayerTemplate()
 	    );
 }
 
+template<>
+size_t TcpLroTestSuite<IPv4>::GetNetworkHeaderLen()
+{
+	return sizeof(struct ip);
+}
+
 struct IPv6 {};
 
 // Generate a IPv6 header template.
@@ -354,6 +362,12 @@ auto TcpLroTestSuite<IPv6>::GetNetworkLayerTemplate()
 	        src("0558::4787:3632:0f44"),
 	        dst("30::01")
 	    );
+}
+
+template<>
+size_t TcpLroTestSuite<IPv6>::GetNetworkHeaderLen()
+{
+	return sizeof(struct ip6_hdr);
 }
 
 typedef ::testing::Types<IPv4, IPv6> NetworkTypes;
@@ -1016,4 +1030,46 @@ TYPED_TEST(TcpLroTestSuite, TestStaleAck)
 	this->mockIfp->MockSequence(1);
 
 	tcp_lro_flush_all(&this->lc);
+}
+
+// Keep sending packets in a flow until the is automatically flushed due to
+// the merged frame being on the verge on exceeding IP_MAXPACKET.  Ensure that
+// a single large frame is set to if_input() with a manual flush being required.
+TYPED_TEST(TcpLroTestSuite, TestAutoFlush)
+{
+	size_t i;
+
+	size_t maxPayload = 1400;
+	size_t ifMtu = this->GetNetworkHeaderLen() + sizeof(struct tcphdr) + maxPayload;
+	auto pktTemplate = this->GetPayloadTemplate()
+	    .WithHeader(Layer::L3).Fields(mtu(ifMtu))
+	    .WithHeader(Layer::PAYLOAD).Fields(
+		    payload('w', IP_MAXPACKET)
+	    );
+
+	size_t packets = (IP_MAXPACKET / maxPayload);
+	size_t totalPayload = packets * maxPayload;
+
+	auto expected = pktTemplate
+	     .WithHeader(Layer::L3).Fields(mtu(IP_MAXPACKET))
+	     .WithHeader(Layer::PAYLOAD).Fields(payload('w', totalPayload));
+
+	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(expected)))
+			.Times(1);
+	this->mockIfp->GetIfp()->if_mtu = ifMtu;
+
+	// This loop is done packets - 1 times because getmicrotime() is not
+	// invoked on the packet that causes us to flush the LRO entry.
+	int usec = 8000;
+	for (i = 0; i < packets - 1; ++i) {
+		MockTime::ExpectGetMicrotime({.tv_sec = 252, .tv_usec = usec});
+		usec += 251;
+	}
+
+	for (i = 0; i < packets; ++i) {
+		int ret = tcp_lro_rx(&this->lc, pktTemplate.GenerateRawMbuf(), 0);
+		ASSERT_EQ(ret, 0);
+
+		pktTemplate = pktTemplate.Next();
+	}
 }
