@@ -30,6 +30,7 @@
 
 #include "pktgen/Ipv4.h"
 #include "pktgen/Ipv6.h"
+#include "pktgen/Tcp.h"
 
 #include "sysunit/TestSuite.h"
 
@@ -203,6 +204,7 @@ class EncapsulatedPayloadTestSuite : public SysUnit::TestSuite
 public:
 	void CheckLengthField(struct mbuf * m, uint16_t payloadLen);
 	auto GetL3Header();
+	size_t GetL3HeaderLen();
 };
 
 struct IPv4 {};
@@ -226,6 +228,12 @@ auto EncapsulatedPayloadTestSuite<IPv4>::GetL3Header()
 	return Ipv4Header();
 }
 
+template<>
+size_t EncapsulatedPayloadTestSuite<IPv4>::GetL3HeaderLen()
+{
+	return sizeof(struct ip);
+}
+
 struct IPv6 {};
 
 template <>
@@ -245,6 +253,12 @@ template <>
 auto EncapsulatedPayloadTestSuite<IPv6>::GetL3Header()
 {
 	return Ipv6Header();
+}
+
+template<>
+size_t EncapsulatedPayloadTestSuite<IPv6>::GetL3HeaderLen()
+{
+	return sizeof(struct ip6_hdr);
 }
 
 typedef ::testing::Types<IPv4, IPv6> NetworkTypes;
@@ -341,4 +355,46 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestSetPayloadLength)
 
 	m = p3.Generate();
 	this->CheckLengthField(m.get(), 0);
+}
+
+template <typename PktTemplate>
+static void
+TestPayload(const PktTemplate & p, size_t pktNum, size_t headerLen, size_t payloadLen, char byte)
+{
+	MbufPtr m = p.Generate();
+
+	ASSERT_EQ(m->m_pkthdr.len, headerLen + payloadLen);
+
+	char * payload = GetMbufHeader<char>(m, headerLen);
+	for (size_t i = 0; i < payloadLen; ++i) {
+		ASSERT_EQ(payload[i], byte) << "Mismatch at packet " <<
+			pktNum << " index " << i;
+	}
+}
+
+// Encapsulate a large payload in a IPvX/TCP header and set an MTU on the
+// L3 header that will require the payload to be segmented.  Create a
+// template for each segment and generate a packet for that template, and
+// verify that the packet has the right length and payload.
+TYPED_TEST(EncapsulatedPayloadTestSuite, TestPayloadSegmentation)
+{
+	size_t maxPayload = 1400;
+	size_t headerLen = this->GetL3HeaderLen() + sizeof(struct tcphdr);
+	size_t ifMtu = headerLen + maxPayload;
+
+	auto pktTemplate = PacketTemplate(
+		this->GetL3Header().With(mtu(ifMtu)),
+		TcpHeader(),
+		PacketPayload().With(payload('w', IP_MAXPACKET))
+	);
+
+	size_t packets = (IP_MAXPACKET / maxPayload);
+
+	for (size_t i = 0; i < packets; ++i) {
+		TestPayload(pktTemplate, i, headerLen, maxPayload, 'w');
+		pktTemplate = pktTemplate.Next();
+	}
+
+	size_t left = IP_MAXPACKET - packets * maxPayload;
+	TestPayload(pktTemplate, packets, headerLen, left, 'w');
 }
