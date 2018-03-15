@@ -482,3 +482,21 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestPayloadSegmentation)
 	size_t left = IP_MAXPACKET - packets * maxPayload;
 	TestPayload(pktTemplate, packets, headerLen, left, 'w');
 }
+
+// Confirm that if no MTU is configured, that the result of Next() is a
+// template that specifies an empty payload.
+TYPED_TEST(EncapsulatedPayloadTestSuite, TestNoMtu)
+{
+	size_t headerLen = this->GetL3HeaderLen() + sizeof(struct tcphdr);
+
+	auto pkt1 = PacketTemplate(
+		this->GetL3Header(),
+		TcpHeader(),
+		PacketPayload().With(payload('a', 10))
+	);
+
+	auto pkt2 = pkt1.Next();
+
+	TestPayload(pkt1, 1, headerLen, 10, 'a');
+	TestPayload(pkt2, 2, headerLen, 0, 'a');
+}
