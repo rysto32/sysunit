@@ -8,6 +8,7 @@ SRCS := \
 	Ipv6Matcher.cpp \
 	Layer.cpp \
 	PayloadMatcher.cpp \
+	PrintIndent.cpp \
 	TcpMatcher.cpp \
 
 TESTS := \
@@ -65,6 +66,7 @@ TEST_PACKETPAYLOAD_SRCS := \
 	Ipv6Matcher.cpp \
 	Layer.cpp \
 	PayloadMatcher.cpp \
+	PrintIndent.cpp \
 	TcpMatcher.cpp \
 
 TEST_TCPHEADER_SRCS := \

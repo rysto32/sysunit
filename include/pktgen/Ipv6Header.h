@@ -45,6 +45,7 @@ extern "C" {
 #include "pktgen/L3Fields.h"
 #include "pktgen/PayloadLength.h"
 #include "pktgen/PacketParsing.h"
+#include "pktgen/PrintIndent.h"
 
 namespace PktGen::internal
 {

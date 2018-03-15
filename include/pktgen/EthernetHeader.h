@@ -36,6 +36,7 @@
 #include "pktgen/Layer.h"
 #include "pktgen/L2Fields.h"
 #include "pktgen/PacketParsing.h"
+#include "pktgen/PrintIndent.h"
 
 namespace PktGen::internal
 {

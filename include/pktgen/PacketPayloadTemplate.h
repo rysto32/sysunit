@@ -36,6 +36,7 @@
 #include "pktgen/Layer.h"
 #include "pktgen/PacketParsing.h"
 #include "pktgen/PayloadLength.h"
+#include "pktgen/PrintIndent.h"
 
 #include <stdint.h>
 #include <vector>

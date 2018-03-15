@@ -90,6 +90,4 @@ namespace PktGen
 	}
 }
 
-void PrintIndent(int, const char *, ...);
-
 #endif
