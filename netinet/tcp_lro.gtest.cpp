@@ -618,12 +618,16 @@ TYPED_TEST(TcpLroTestSuite, TestDupAck)
 // packet is rejected by LRO.
 TYPED_TEST(TcpLroTestSuite, TestOoOBackwards)
 {
+	const int ifMtu = 1500;
+
 	// This is the second packet that will be sent to LRO
 	auto pkt2 = this->GetPayloadTemplate()
-	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
+	    .WithHeader(Layer::L3).Fields(mtu(ifMtu))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 2 * ifMtu));
 
 	// This is the first packet that will be sent to LRO.
-	auto pkt1 = pkt2.Next();
+	auto pkt1 = pkt2.Next()
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("BSD"));
 
 	this->TestRejectSecond(pkt1, pkt2);
 }
@@ -634,8 +638,11 @@ TYPED_TEST(TcpLroTestSuite, TestOoOBackwards)
 // while the second, out-of-order packet is rejected by LRO.
 TYPED_TEST(TcpLroTestSuite, TestOoOSkipSeq)
 {
+	const int ifMtu = 1500;
+
 	auto pkt1 = this->GetPayloadTemplate()
-	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
+	    .WithHeader(Layer::L3).Fields(mtu(ifMtu))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 3 * ifMtu));
 
 	// We skip over one packet in the sequence by calling Next() twice.
 	auto pkt2 = pkt1.Next().Next();
@@ -663,8 +670,11 @@ TYPED_TEST(TcpLroTestSuite, TestOoODupSeq)
 // order packet is rejected by LRO.
 TYPED_TEST(TcpLroTestSuite, TestOoOSeqInPrev)
 {
+	const int ifMtu = 9000;
+
 	auto pkt1 = this->GetPayloadTemplate()
-	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
+	    .WithHeader(Layer::L3).Fields(mtu(ifMtu))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 2 * ifMtu));
 
 	// Create a packet with a sequence number in the middle of the
 	// range of the previous frame.
@@ -679,8 +689,11 @@ TYPED_TEST(TcpLroTestSuite, TestOoOSeqInPrev)
 // order packet is rejected by LRO.
 TYPED_TEST(TcpLroTestSuite, TestOoOSeqOffByOne)
 {
+	const int ifMtu = 1500;
+
 	auto pkt1 = this->GetPayloadTemplate()
-	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 25));
+	    .WithHeader(Layer::L3).Fields(mtu(ifMtu))
+	    .WithHeader(Layer::PAYLOAD).Fields(payload("FreeBSD", 2 * ifMtu));
 
 	// Create a packet with a sequence number one past the end of
 	// the previous frame.
