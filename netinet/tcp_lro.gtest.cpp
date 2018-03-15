@@ -871,8 +871,8 @@ TYPED_TEST(TcpLroTestSuite, TestTwoVlanFlows)
 	    .WithHeader(Layer::L2).Fields(mbufVlan(6));
 
 	// Note that the order in which these expectations are listed does not
-	// imply that the packets must arrive in this order.  You have to explicit
-	// sequence expectations to imply an ordering.
+	// imply that the packets must arrive in this order.  You have to
+	// explicitly sequence expectations to specify an ordering.
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow1_pkt1)))
 	    .Times(1);
 	EXPECT_CALL(*this->mockIfp, if_input(PacketMatcher(flow2_pkt1)))
