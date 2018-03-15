@@ -205,6 +205,11 @@ public:
 	void CheckLengthField(struct mbuf * m, uint16_t payloadLen);
 	auto GetL3Header();
 	size_t GetL3HeaderLen();
+
+	uint8_t * GetL3Payload(struct mbuf * m)
+	{
+		return GetMbufHeader<uint8_t>(m, GetL3HeaderLen());
+	}
 };
 
 struct IPv4 {};
@@ -277,15 +282,37 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestVectorPayload)
 	MbufPtr m = p.Generate();
 	this->CheckLengthField(m.get(), 4);
 
+	uint8_t * pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 9);
+	EXPECT_EQ(pktPayload[1], 8);
+	EXPECT_EQ(pktPayload[2], 7);
+	EXPECT_EQ(pktPayload[3], 6);
+
 	auto p2 = p.WithHeader(Layer::PAYLOAD).Fields(appendPayload({1,2,3,4,5}));
 
 	m = p2.Generate();
 	this->CheckLengthField(m.get(), 9);
 
+	pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 9);
+	EXPECT_EQ(pktPayload[1], 8);
+	EXPECT_EQ(pktPayload[2], 7);
+	EXPECT_EQ(pktPayload[3], 6);
+	EXPECT_EQ(pktPayload[4], 1);
+	EXPECT_EQ(pktPayload[5], 2);
+	EXPECT_EQ(pktPayload[6], 3);
+	EXPECT_EQ(pktPayload[7], 4);
+	EXPECT_EQ(pktPayload[8], 5);
+
 	auto p3 = p.With(payload({1, 2, 3}));
 
 	m = p3.Generate();
 	this->CheckLengthField(m.get(), 3);
+
+	pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 1);
+	EXPECT_EQ(pktPayload[1], 2);
+	EXPECT_EQ(pktPayload[2], 3);
 }
 
 // Generate a packet with an L3 header and a payload.  Verify that the L3
@@ -301,15 +328,28 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestBytePayload)
 	MbufPtr m = p.Generate();
 	this->CheckLengthField(m.get(), 1);
 
+	uint8_t * pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 0x67);
+
 	auto p2 = p.With(appendPayload(0x77, 3));
 
 	m = p2.Generate();
 	this->CheckLengthField(m.get(), 4);
 
+	pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 0x67);
+	EXPECT_EQ(pktPayload[1], 0x77);
+	EXPECT_EQ(pktPayload[2], 0x77);
+	EXPECT_EQ(pktPayload[3], 0x77);
+
 	auto p3 = p.WithHeader(Layer::PAYLOAD).Fields(payload(0x11, 10));
 
 	m = p3.Generate();
 	this->CheckLengthField(m.get(), 10);
+
+	pktPayload = this->GetL3Payload(m.get());
+	for (int i = 0; i < 10; ++i)
+		EXPECT_EQ(pktPayload[i], 0x11);
 }
 
 // Generate a packet with an L3 header and a payload.  Verify that the L3
@@ -325,15 +365,51 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestStringPayload)
 	MbufPtr m = p.Generate();
 	this->CheckLengthField(m.get(), 10);
 
+	uint8_t * pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 'k');
+	EXPECT_EQ(pktPayload[1], 'f');
+	EXPECT_EQ(pktPayload[2], 'j');
+	EXPECT_EQ(pktPayload[3], 'u');
+	EXPECT_EQ(pktPayload[4], 'w');
+	EXPECT_EQ(pktPayload[5], 'k');
+	EXPECT_EQ(pktPayload[6], 'f');
+	EXPECT_EQ(pktPayload[7], 'j');
+	EXPECT_EQ(pktPayload[8], 'u');
+	EXPECT_EQ(pktPayload[9], 'w');
+
 	auto p2 = p.WithHeader(Layer::PAYLOAD).Fields(appendPayload("8596"));
 
 	m = p2.Generate();
 	this->CheckLengthField(m.get(), 14);
 
-	auto p3 = p.With(payload("fmjdlkjfdklfj", 39));
+	pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 'k');
+	EXPECT_EQ(pktPayload[1], 'f');
+	EXPECT_EQ(pktPayload[2], 'j');
+	EXPECT_EQ(pktPayload[3], 'u');
+	EXPECT_EQ(pktPayload[4], 'w');
+	EXPECT_EQ(pktPayload[5], 'k');
+	EXPECT_EQ(pktPayload[6], 'f');
+	EXPECT_EQ(pktPayload[7], 'j');
+	EXPECT_EQ(pktPayload[8], 'u');
+	EXPECT_EQ(pktPayload[9], 'w');
+	EXPECT_EQ(pktPayload[10], '8');
+	EXPECT_EQ(pktPayload[11], '5');
+	EXPECT_EQ(pktPayload[12], '9');
+	EXPECT_EQ(pktPayload[13], '6');
+
+	int len = 39;
+	auto p3 = p.With(payload("0123456789", len));
 
 	m = p3.Generate();
-	this->CheckLengthField(m.get(), 39);
+	this->CheckLengthField(m.get(), len);
+
+	pktPayload = this->GetL3Payload(m.get());
+	for (int i = 0; i < roundup(len, 10); ++i) {
+		int count = std::min(10, len - i * 10);
+		for (int j = 0; j < count; ++j)
+			EXPECT_EQ(pktPayload[i * 10 + j], '0' + j);
+	}
 }
 
 // Generate a packet with an L3 header and a payload.  Verify that the L3
@@ -350,6 +426,14 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestSetPayloadLength)
 
 	MbufPtr m = p2.Generate();
 	this->CheckLengthField(m.get(), 6);
+
+	uint8_t * pktPayload = this->GetL3Payload(m.get());
+	EXPECT_EQ(pktPayload[0], 'k');
+	EXPECT_EQ(pktPayload[1], 'f');
+	EXPECT_EQ(pktPayload[2], 'j');
+	EXPECT_EQ(pktPayload[3], 'u');
+	EXPECT_EQ(pktPayload[4], 'w');
+	EXPECT_EQ(pktPayload[5], 'k');
 
 	auto p3 = p.With(length(0));
 
