@@ -378,9 +378,9 @@ TestPayload(const PktTemplate & p, size_t pktNum, size_t headerLen, size_t paylo
 // verify that the packet has the right length and payload.
 TYPED_TEST(EncapsulatedPayloadTestSuite, TestPayloadSegmentation)
 {
-	size_t maxPayload = 1400;
+	size_t ifMtu = 1500;
 	size_t headerLen = this->GetL3HeaderLen() + sizeof(struct tcphdr);
-	size_t ifMtu = headerLen + maxPayload;
+	size_t maxPayload = ifMtu - headerLen;
 
 	auto pktTemplate = PacketTemplate(
 		this->GetL3Header().With(mtu(ifMtu)),

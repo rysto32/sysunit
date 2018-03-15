@@ -1041,8 +1041,8 @@ TYPED_TEST(TcpLroTestSuite, TestAutoFlush)
 {
 	size_t i;
 
-	size_t maxPayload = 1400;
-	size_t ifMtu = this->GetNetworkHeaderLen() + sizeof(struct tcphdr) + maxPayload;
+	size_t ifMtu = 1500;
+	size_t maxPayload = ifMtu - this->GetNetworkHeaderLen() - sizeof(struct tcphdr);
 	auto pktTemplate = this->GetPayloadTemplate()
 	    .WithHeader(Layer::L3).Fields(mtu(ifMtu))
 	    .WithHeader(Layer::PAYLOAD).Fields(
