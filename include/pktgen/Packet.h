@@ -130,7 +130,7 @@ namespace PktGen::internal
 
 			ApplyMutators(copy, mutators...);
 
-			return std::move(copy);
+			return copy;
 		}
 
 		template <typename T, typename Mutator, typename... Rest>
