@@ -241,7 +241,7 @@ namespace PktGen::internal
 
 		template <typename Header>
 		static void FillFromHeader(struct mbuf *m, const Header & header,
-		    size_t & offset, size_t & payloadIndex)
+		    size_t & offset)
 		{
 			header.FillPacket(m, offset);
 			offset += header.GetLen();
@@ -285,8 +285,7 @@ namespace PktGen::internal
 			std::apply( [&m] (const auto &... header)
 				{
 					size_t offset = 0;
-					size_t payloadIndex = 0;
-					(FillFromHeader(m.get(), header, offset, payloadIndex), ...);
+					(FillFromHeader(m.get(), header, offset), ...);
 				},
 				headers);
 
