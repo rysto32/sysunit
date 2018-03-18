@@ -219,18 +219,12 @@ namespace PktGen::internal
 
 		void PropagateOutwardFieldSetters()
 		{
-			std::apply([] (auto &... headers)
-				{
-					PropagateOutwards(headers...);
-				}, headers);
+			std::apply(PropagateOutwards<Headers...>, headers);
 		}
 
 		void PropagateInwardFieldSetters()
 		{
-			std::apply([] (auto &... headers)
-				{
-					PropagateInwards(headers...);
-				}, headers);
+			std::apply(PropagateInwards<Headers...>, headers);
 		}
 
 		void PropagateFields()
