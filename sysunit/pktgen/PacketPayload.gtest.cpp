@@ -51,7 +51,7 @@ TEST_F(PacketPayloadTestSuite, TestVectorPayload)
 {
 	auto p = PacketTemplate(PacketPayload().With(payload({1, 2, 3})));
 
-	MbufPtr m = p.Generate();
+	MbufUniquePtr m = p.Generate();
 
 	ASSERT_EQ(m->m_pkthdr.len, 3);
 	EXPECT_EQ(m->m_data[0], 1);
@@ -63,7 +63,7 @@ TEST_F(PacketPayloadTestSuite, TestEmptyPayload)
 {
 	auto p = PacketTemplate(PacketPayload());
 
-	MbufPtr m = p.Generate();
+	MbufUniquePtr m = p.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 0);
 
 	auto p2 = p.WithHeader(Layer::PAYLOAD).Fields(payload());
@@ -76,7 +76,7 @@ TEST_F(PacketPayloadTestSuite, TestBytePayload)
 {
 	auto p1 = PacketTemplate(PacketPayload().With(payload(0x05, 4)));
 
-	MbufPtr m = p1.Generate();
+	MbufUniquePtr m = p1.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 4);
 	for (int i = 0; i < m->m_pkthdr.len; ++i)
 		EXPECT_EQ(m->m_data[i], 0x05);
@@ -92,7 +92,7 @@ TEST_F(PacketPayloadTestSuite, TestStringPayload)
 {
 	auto p1 = PacketTemplate(PacketPayload().With(payload("abcde", 7)));
 
-	MbufPtr m = p1.Generate();
+	MbufUniquePtr m = p1.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 7);
 	EXPECT_EQ(m->m_data[0], 'a');
 	EXPECT_EQ(m->m_data[1], 'b');
@@ -117,7 +117,7 @@ TEST_F(PacketPayloadTestSuite, TestAppendVector)
 
 	auto p2 = p1.WithHeader(Layer::PAYLOAD).Fields(appendPayload({7, 8, 9}));
 
-	MbufPtr m = p2.Generate();
+	MbufUniquePtr m = p2.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 9);
 	EXPECT_EQ(m->m_data[0], 'd');
 	EXPECT_EQ(m->m_data[1], 'a');
@@ -135,7 +135,7 @@ TEST_F(PacketPayloadTestSuite, TestAppendByte)
 	auto p1 = PacketTemplate(PacketPayload());
 	auto p2 = p1.With(appendPayload(0x10));
 
-	MbufPtr m = p2.Generate();
+	MbufUniquePtr m = p2.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 1);
 	EXPECT_EQ(m->m_data[0], 0x10);
 
@@ -153,7 +153,7 @@ TEST_F(PacketPayloadTestSuite, TestAppendString)
 	auto p1 = PacketTemplate(PacketPayload().With(payload({9, 6, 3})));
 	auto p2 = p1.With(appendPayload("741"));
 
-	MbufPtr m = p2.Generate();
+	MbufUniquePtr m = p2.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 6);
 	EXPECT_EQ(m->m_data[0], 9);
 	EXPECT_EQ(m->m_data[1], 6);
@@ -183,7 +183,7 @@ TEST_F(PacketPayloadTestSuite, TestReduceLength)
 	auto p1 = PacketTemplate(PacketPayload().With(payload("1234567890", 21)));
 	auto p2 = p1.With(length(6));
 
-	MbufPtr m = p2.Generate();
+	MbufUniquePtr m = p2.Generate();
 	ASSERT_EQ(m->m_pkthdr.len, 6);
 	EXPECT_EQ(m->m_data[0], '1');
 	EXPECT_EQ(m->m_data[1], '2');
@@ -279,7 +279,7 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestVectorPayload)
 		PacketPayload().With(payload({9, 8, 7, 6}))
 	);
 
-	MbufPtr m = p.Generate();
+	MbufUniquePtr m = p.Generate();
 	this->CheckLengthField(m.get(), 4);
 
 	uint8_t * pktPayload = this->GetL3Payload(m.get());
@@ -325,7 +325,7 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestBytePayload)
 		PacketPayload().With(payload(0x67))
 	);
 
-	MbufPtr m = p.Generate();
+	MbufUniquePtr m = p.Generate();
 	this->CheckLengthField(m.get(), 1);
 
 	uint8_t * pktPayload = this->GetL3Payload(m.get());
@@ -362,7 +362,7 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestStringPayload)
 		PacketPayload().With(payload("kfjuw", 10))
 	);
 
-	MbufPtr m = p.Generate();
+	MbufUniquePtr m = p.Generate();
 	this->CheckLengthField(m.get(), 10);
 
 	uint8_t * pktPayload = this->GetL3Payload(m.get());
@@ -424,7 +424,7 @@ TYPED_TEST(EncapsulatedPayloadTestSuite, TestSetPayloadLength)
 
 	auto p2 = p.WithHeader(Layer::PAYLOAD).Fields(length(6));
 
-	MbufPtr m = p2.Generate();
+	MbufUniquePtr m = p2.Generate();
 	this->CheckLengthField(m.get(), 6);
 
 	uint8_t * pktPayload = this->GetL3Payload(m.get());
@@ -445,7 +445,7 @@ template <typename PktTemplate>
 static void
 TestPayload(const PktTemplate & p, size_t pktNum, size_t headerLen, size_t payloadLen, char byte)
 {
-	MbufPtr m = p.Generate();
+	MbufUniquePtr m = p.Generate();
 
 	ASSERT_EQ(m->m_pkthdr.len, headerLen + payloadLen);
 

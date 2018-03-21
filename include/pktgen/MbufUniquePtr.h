@@ -26,14 +26,14 @@
  * SUCH DAMAGE.
  */
 
-#ifndef PKTGEN_MBUF_PTR_H
-#define PKTGEN_MBUF_PTR_H
+#ifndef PKTGEN_MBUF_UNIQUE_PTR_H
+#define PKTGEN_MBUF_UNIQUE_PTR_H
 
 #include <memory>
 
 #include "fake/mbuf.h"
 
-namespace PktGen
+namespace PktGen::internal
 {
 	struct MbufDeleter
 	{
@@ -42,8 +42,11 @@ namespace PktGen
 			m_freem(m);
 		}
 	};
+}
 
-	typedef std::unique_ptr<struct mbuf, MbufDeleter> MbufPtr;
+namespace PktGen
+{
+	typedef std::unique_ptr<struct mbuf, internal::MbufDeleter> MbufUniquePtr;
 }
 
 #endif

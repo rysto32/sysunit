@@ -65,7 +65,7 @@ public:
 	template <typename Header>
 	void ExpectHeader(const Header & header, struct tcphdr *expected, size_t paylen = 0)
 	{
-		MbufPtr m = header.Generate();
+		MbufUniquePtr m = header.Generate();
 		auto * tcp = GetMbufHeader<tcphdr>(m);
 
 		EXPECT_EQ(m->m_pkthdr.len, sizeof(struct tcphdr) + paylen);
@@ -85,7 +85,7 @@ public:
 	template <typename Header>
 	void VerifyMbufChainLen(const Header & header, size_t expectedPayload)
 	{
-		MbufPtr m = header.Generate();
+		MbufUniquePtr m = header.Generate();
 		uint16_t totalLen = sizeof(struct tcphdr) + expectedPayload;
 
 		EXPECT_EQ(m->m_pkthdr.len, totalLen);
@@ -94,7 +94,7 @@ public:
 	template <typename Header>
 	void VerifyMbufPayload(const Header & header, char expectedByte, size_t expectedPayload)
 	{
-		MbufPtr m = header.Generate();
+		MbufUniquePtr m = header.Generate();
 		size_t totalLen = sizeof(struct tcphdr) + expectedPayload;
 
 		ASSERT_EQ(m->m_pkthdr.len, totalLen);
@@ -222,7 +222,7 @@ TEST_F(TcpHeaderTestSuite, TestNext)
 
 	auto p2 = p1.Next();
 
-	MbufPtr m = p1.Generate();
+	MbufUniquePtr m = p1.Generate();
 	struct tcphdr * expected = GetMbufHeader<struct tcphdr>(m);
 
 	expected->th_seq = hton(firstSeq + payloadLen);
@@ -255,7 +255,7 @@ TEST_F(TcpHeaderTestSuite, TestRetransmission)
 
 	auto p2 = p1.Retransmission();
 
-	MbufPtr m = p1.Generate();
+	MbufUniquePtr m = p1.Generate();
 	struct tcphdr * expected = GetMbufHeader<struct tcphdr>(m);
 
 	ExpectHeader(p2, expected, payloadLen);

@@ -33,7 +33,7 @@
 
 #include "pktgen/FieldPropagator.h"
 #include "pktgen/Layer.h"
-#include "pktgen/MbufPtr.h"
+#include "pktgen/MbufUniquePtr.h"
 #include "pktgen/PayloadLength.h"
 
 #include <algorithm>
@@ -267,11 +267,11 @@ namespace PktGen::internal
 			return FieldsImpl<FindLayer<Layer, Nesting>()>(headers);
 		}
 
-		MbufPtr Generate() const
+		MbufUniquePtr Generate() const
 		{
 			const auto & outer = std::get<0>(headers);
 			int len = outer.GetLen() + outer.GetPayloadLength();
-			MbufPtr m(alloc_mbuf(len));
+			MbufUniquePtr m(alloc_mbuf(len));
 
 			m->m_pkthdr.len = len;
 			m->m_len = len;

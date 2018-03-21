@@ -50,7 +50,7 @@ public:
 	template <typename Template, typename Expected>
 	void TestPayload(const Template & p, const Expected & expectedHeaders)
 	{
-		MbufPtr m = p.Generate();
+		MbufUniquePtr m = p.Generate();
 
 		ASSERT_EQ(m->m_pkthdr.len, sizeof(Expected));
 

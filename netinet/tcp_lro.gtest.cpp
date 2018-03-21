@@ -572,7 +572,7 @@ TcpLroTestSuite<NetworkLayerTemplate>::TestRejectSecond(const PktTemplate & pkt1
 	int ret = tcp_lro_rx(&this->lc, pkt1.GenerateRawMbuf(), 0);
 	ASSERT_EQ(ret, 0);
 
-	MbufPtr m = pkt2.Generate();
+	MbufUniquePtr m = pkt2.Generate();
 	ret = tcp_lro_rx(&this->lc, m.get(), 0);
 	ASSERT_EQ(ret, failCode);
 }
@@ -714,7 +714,7 @@ TYPED_TEST(TcpLroTestSuite, TestForwardingEnabled)
 	ipforwarding = 1;
 	ip6_forwarding = 1;
 
-	MbufPtr m = pkt.Generate();
+	MbufUniquePtr m = pkt.Generate();
 	int ret = tcp_lro_rx(&this->lc, m.get(), 0);
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
 }
@@ -919,7 +919,7 @@ TYPED_TEST(TcpLroTestSuite, TestSyn)
 	        flags(TH_SYN | TH_ACK)
 	    );
 
-	MbufPtr m = syn.Generate();
+	MbufUniquePtr m = syn.Generate();
 	int ret = tcp_lro_rx(&this->lc, m.get(), 0);
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
 

@@ -237,7 +237,7 @@ TEST_F(TcpLroSampleTestSuite, TestBadIpHeaderLen)
 	lc.ifp = mockIfp.GetIfp();
 
 	// Send the invalid frame to tcp_lro_rx() and confirm that it is rejected
-	MbufPtr m = pkt.Generate();
+	MbufUniquePtr m = pkt.Generate();
 	int ret = tcp_lro_rx(&lc, m.get(), 0);
 	ASSERT_EQ(ret, TCP_LRO_CANNOT);
 

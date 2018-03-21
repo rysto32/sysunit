@@ -49,7 +49,7 @@ public:
 	template <typename Header>
 	void ExpectHeader(const Header & h, struct ip6_hdr * expected)
 	{
-		MbufPtr m = h.Generate();
+		MbufUniquePtr m = h.Generate();
 		auto * ip = GetMbufHeader<struct ip6_hdr>(m);
 
 		EXPECT_EQ(ip->ip6_vfc, expected->ip6_vfc);
@@ -84,7 +84,7 @@ public:
 	template <typename Header>
 	void VerifyMbufChainLen(const Header & header, uint16_t expectedPayload)
 	{
-		MbufPtr m = header.Generate();
+		MbufUniquePtr m = header.Generate();
 		uint16_t totalLen = sizeof(struct ip6_hdr) + expectedPayload;
 
 		EXPECT_EQ(m->m_pkthdr.len, totalLen);
@@ -187,7 +187,7 @@ TEST_F(Ipv6HeaderTestSuite, TestNext)
 	auto p2 = p1.Next();
 	auto p3 = p1.Retransmission();
 
-	MbufPtr m = p1.Generate();
+	MbufUniquePtr m = p1.Generate();
 	struct ip6_hdr * expected = GetMbufHeader<struct ip6_hdr>(m);
 
 	ExpectHeader(p2, expected);

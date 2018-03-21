@@ -67,7 +67,7 @@ public:
 	void ExpectTemplateMatches(const Header & header,
 	    const struct ether_header * expected, uint16_t vlan = 0)
 	{
-		MbufPtr m = header.Generate();
+		MbufUniquePtr m = header.Generate();
 
 		EXPECT_EQ(m->m_flags & M_PKTHDR, M_PKTHDR);
 		EXPECT_EQ(m->m_len, sizeof(struct ether_header));
@@ -86,7 +86,7 @@ public:
 	template <typename Header>
 	void VerifyMbufChainLen(const Header & header, size_t expectedPayload)
 	{
-		MbufPtr m = header.Generate();
+		MbufUniquePtr m = header.Generate();
 
 		EXPECT_EQ(m->m_pkthdr.len,
 		    sizeof(struct ether_header) + expectedPayload);
@@ -163,7 +163,7 @@ TEST_F(EthernetHeaderTestSuite, TestNext)
 	auto p2 = p1.Next();
 	auto p3 = p1.Retransmission();
 
-	MbufPtr m = p1.Generate();
+	MbufUniquePtr m = p1.Generate();
 	struct ether_header *expected = GetMbufHeader<struct ether_header>(m);
 
 	ExpectTemplateMatches(p2, expected, 56);
