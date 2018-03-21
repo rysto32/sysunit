@@ -57,6 +57,7 @@ extern "C" {
 
 using namespace PktGen;
 using namespace testing;
+using SysUnit::MockTime;
 
 int ipforwarding;
 int ip6_forwarding;

@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef MOCK_GLOBAL_MOCK_H
-#define MOCK_GLOBAL_MOCK_H
+#ifndef SYSUNIT_GLOBAL_MOCK_H
+#define SYSUNIT_GLOBAL_MOCK_H
 
 #include "sysunit/Initializer.h"
 
@@ -35,6 +35,7 @@
 
 #include <memory>
 
+namespace SysUnit::internal {
 template <typename Mock>
 class GlobalMockInitializer : public SysUnit::Initializer
 {
@@ -55,7 +56,10 @@ public:
 		Mock::TearDown();
 	}
 };
+}
 
+namespace SysUnit
+{
 template <typename Derived>
 class GlobalMock
 {
@@ -73,7 +77,7 @@ private:
 		mockobj.reset();
 	}
 
-	typedef GlobalMockInitializer<Derived> Initializer;
+	typedef internal::GlobalMockInitializer<Derived> Initializer;
 	friend Initializer;
 
 	static Initializer initializer;
@@ -91,5 +95,6 @@ public:
 
 template <typename T>
 typename GlobalMock<T>::MockPtr GlobalMock<T>::mockobj;
+}
 
 #endif

@@ -29,8 +29,10 @@
 #ifndef MOCK_TIME_H
 #define MOCK_TIME_H
 
-#include "mock/GlobalMock.h"
+#include "sysunit/GlobalMock.h"
 
+namespace SysUnit
+{
 class MockTime : public GlobalMock<MockTime>
 {
 public:
@@ -44,5 +46,6 @@ public:
 		  .RetiresOnSaturation();
 	}
 };
+}
 
 #endif
