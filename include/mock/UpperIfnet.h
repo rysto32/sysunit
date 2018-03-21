@@ -26,8 +26,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef MOCK_IFNET_H
-#define MOCK_IFNET_H
+#ifndef MOCK_UPPER_IFNET_H
+#define MOCK_UPPER_IFNET_H
 
 #include <kern_include/sys/types.h>
 #include <kern_include/net/if.h>
@@ -35,7 +35,9 @@
 
 #include <gmock/gmock.h>
 
-class MockIfnet
+namespace SysUnit
+{
+class MockUpperIfnet
 {
 private:
 	struct ifnet ifn;
@@ -43,7 +45,7 @@ private:
 	static void IfInput(struct ifnet *, struct mbuf *);
 
 public:
-	MockIfnet(const char * driver, int unit);
+	MockUpperIfnet(const char * driver, int unit);
 
 	MOCK_METHOD1(if_input, void(struct mbuf *));
 
@@ -56,5 +58,6 @@ public:
 		return &ifn;
 	}
 };
+}
 
 #endif

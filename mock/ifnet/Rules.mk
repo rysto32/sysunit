@@ -2,4 +2,4 @@
 LIB := mock_ifnet
 
 SRCS := \
-	MockIfnet.cpp
+	MockUpperIfnet.cpp

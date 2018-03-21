@@ -48,12 +48,13 @@ extern "C" {
 
 #include "sysunit/TestSuite.h"
 
-#include "mock/ifnet.h"
+#include "mock/UpperIfnet.h"
 #include "mock/time.h"
 
 using namespace PktGen;
 using namespace testing;
 using SysUnit::MockTime;
+using SysUnit::MockUpperIfnet;
 
 int ipforwarding;
 int ip6_forwarding;
@@ -102,7 +103,7 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp4)
 	// Initialize mocks.  Mocks are used to implement kernel APIs depended
 	// on by the code being tested.
 
-	StrictMock<MockIfnet> mockIfp("mock", 0);
+	StrictMock<MockUpperIfnet> mockIfp("mock", 0);
 
 	// Inform the mock that we expect tcp_lro to pass in a packet matching out
 	// template exactly once.  The test will fail if if_input() is not called
@@ -166,7 +167,7 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 
 	// Initialize mocks.
 
-	StrictMock<MockIfnet> mockIfp("mock", 0);
+	StrictMock<MockUpperIfnet> mockIfp("mock", 0);
 
 	// Inform the mock that we expect tcp_lro to pass in a packet matching out
 	// template exactly once.  The test will fail if if_input() is not called
@@ -228,7 +229,7 @@ TEST_F(TcpLroSampleTestSuite, TestBadIpHeaderLen)
 		 )
 	);
 
-	StrictMock<MockIfnet> mockIfp("mock", 0);
+	StrictMock<MockUpperIfnet> mockIfp("mock", 0);
 
 	// Begin the testcase.
 	struct lro_ctrl lc;

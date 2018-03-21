@@ -26,10 +26,6 @@
  * SUCH DAMAGE.
  */
 
-#define _KERNEL_UT 1
-
-#include <stdarg.h>
-
 #include "pktgen/Ethernet.h"
 #include "pktgen/Ipv4.h"
 #include "pktgen/Ipv6.h"
@@ -52,12 +48,13 @@ extern "C" {
 
 #include "sysunit/TestSuite.h"
 
-#include "mock/ifnet.h"
+#include "mock/UpperIfnet.h"
 #include "mock/time.h"
 
 using namespace PktGen;
 using namespace testing;
 using SysUnit::MockTime;
+using SysUnit::MockUpperIfnet;
 
 int ipforwarding;
 int ip6_forwarding;
@@ -67,13 +64,13 @@ class TcpLroTestSuite : public SysUnit::TestSuite
 {
 public:
 	struct lro_ctrl lc;
-	std::unique_ptr<StrictMock<MockIfnet>> mockIfp;
+	std::unique_ptr<StrictMock<MockUpperIfnet>> mockIfp;
 
 	void TestCaseSetUp() override
 	{
 		// A MockIfnet instance mocks the APIs provided by callbacks in struct ifnet.
 		// This ifnet will be named mock0
-		mockIfp = std::make_unique<StrictMock<MockIfnet>>("mock", 0);
+		mockIfp = std::make_unique<StrictMock<MockUpperIfnet>>("mock", 0);
 
 		tcp_lro_init(&lc);
 		lc.ifp = mockIfp->GetIfp();

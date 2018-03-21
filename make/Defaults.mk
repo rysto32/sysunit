@@ -15,10 +15,11 @@ CXX_STD=-std=c++17
 CXX_WARNFLAGS=-Wall -Werror -Wno-user-defined-literals
 
 CFLAGS:=-I/usr/local/include -I$(TOPDIR)/include -g -DBSD_VISIBLE \
-    -DKLD_MODULE -DSMP -DINVARIANTS -DINVARIANT_SUPPORT -Werror
+    -DKLD_MODULE -DSMP -DINVARIANTS -DINVARIANT_SUPPORT -Werror \
+    -D_KERNEL_UT
 
 C_ONLY_FLAGS := -I$(TOPDIR)/include/kern_include $(C_OPTIM)  -nostdinc \
-    -D_KERNEL_UT -D_KERNEL_UT_MALLOC -D_KERNEL_UT_SYSTM_LIBKERN -D_KERNEL_UT_PAUSE \
+    -D_KERNEL_UT_MALLOC -D_KERNEL_UT_SYSTM_LIBKERN -D_KERNEL_UT_PAUSE \
     -Wno-incompatible-library-redeclaration -Wno-address-of-packed-member \
     -Wno-format-invalid-specifier -Wno-format
 

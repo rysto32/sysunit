@@ -26,12 +26,12 @@
  * SUCH DAMAGE.
  */
 
-#define _KERNEL_UT 1
-
-#include "mock/ifnet.h"
+#include "mock/UpperIfnet.h"
 #include "fake/mbuf.h"
 
-MockIfnet::MockIfnet(const char * driver, int unit)
+namespace SysUnit
+{
+MockUpperIfnet::MockUpperIfnet(const char * driver, int unit)
 {
 	memset(&ifn, 0, sizeof(ifn));
 
@@ -44,10 +44,11 @@ MockIfnet::MockIfnet(const char * driver, int unit)
 }
 
 void
-MockIfnet::IfInput(struct ifnet * ifp, struct mbuf *m)
+MockUpperIfnet::IfInput(struct ifnet * ifp, struct mbuf *m)
 {
-	auto * mock = static_cast<MockIfnet*>(ifp->if_llsoftc);
+	auto * mock = static_cast<MockUpperIfnet*>(ifp->if_llsoftc);
 
 	mock->if_input(m);
 	m_freem(m);
+}
 }
