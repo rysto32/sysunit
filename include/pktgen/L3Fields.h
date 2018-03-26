@@ -88,7 +88,7 @@ namespace PktGen
 
 	auto inline hopLimit(uint8_t x)
 	{
-		return [x] (auto & h) { h.SetHopLimit(x); };
+		return ttl(x);
 	}
 }
 

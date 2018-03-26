@@ -148,7 +148,7 @@ namespace PktGen::internal
 			return ipv6_hlim;
 		}
 
-		void SetHopLimit(uint8_t x)
+		void SetTtl(uint8_t x)
 		{
 			ipv6_hlim = x;
 		}
