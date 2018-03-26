@@ -84,7 +84,7 @@ namespace PktGen::internal
 		class FieldsImpl
 		{
 		private:
-			const std::tuple<Headers...> & headers;
+			std::tuple<Headers...> headers;
 
 			explicit FieldsImpl(const std::tuple<Headers...> & h)
 			  : headers(h)
@@ -103,7 +103,7 @@ namespace PktGen::internal
 
 		public:
 			template <typename... FieldList>
-			SelfType Fields(FieldList... f)
+			SelfType Fields(FieldList... f) const
 			{
 				return SelfType(std::tuple_cat(SliceFront<HeaderIndex>(headers),
 				    std::make_tuple(Apply(std::get<HeaderIndex>(headers), f...)),
