@@ -103,6 +103,8 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp4)
 	// Initialize mocks.  Mocks are used to implement kernel APIs depended
 	// on by the code being tested.
 
+	// A MockUpperIfnet instance mocks the APIs provided by callbacks in
+	// struct ifnet.  This ifnet will be named mock0.
 	StrictMock<MockUpperIfnet> mockIfp("mock", 0);
 
 	// Inform the mock that we expect tcp_lro to pass in a packet matching out
@@ -167,6 +169,8 @@ TEST_F(TcpLroSampleTestSuite, TestSingleTcp6)
 
 	// Initialize mocks.
 
+	// A MockUpperIfnet instance mocks the APIs provided by callbacks in
+	// struct ifnet.  This ifnet will be named mock0.
 	StrictMock<MockUpperIfnet> mockIfp("mock", 0);
 
 	// Inform the mock that we expect tcp_lro to pass in a packet matching out
