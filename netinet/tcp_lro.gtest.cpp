@@ -848,7 +848,8 @@ TYPED_TEST(TcpLroTestSuite, TestStaleAck)
 
 // Keep sending packets in a flow until the is automatically flushed due to
 // the merged frame being on the verge on exceeding IP_MAXPACKET.  Ensure that
-// a single large frame is set to if_input() with a manual flush being required.
+// a single large frame is set to if_input() without a manual flush being
+// required.
 TYPED_TEST(TcpLroTestSuite, TestAutoFlush)
 {
 	size_t i;
